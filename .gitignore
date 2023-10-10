@@ -1,4 +1,8 @@
 ### Node ###
+
+# PostgreSQL
+*.pgsql
+
 # Logs
 logs
 *.log
