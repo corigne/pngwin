@@ -17,7 +17,7 @@ app.get('/.well-known/jwks.json', (res: Response) => {
         const modulus = process.env.RSA_KEY_N;
         const exponent = process.env.RSA_KEY_E;
         const kid = process.env.RSA_KEY_KID;
-        
+
         if(!modulus || !exponent || !kid){
             throw new Error('RSA key informatiion is missing');
         }
@@ -40,10 +40,18 @@ app.get('/.well-known/jwks.json', (res: Response) => {
     }
  });
 
+var issue_JWT = (userid: number, session_id: number, length_days: number) => {
+  // create a JWT with the user_id, session_id, role, iat, and exp baked in
+ }
+
+var verify_JWT = (token: JSON) => {
+  // verify the user's JWT is valid, return true if valid, false if not
+}
+
 app.post('/auth', async (req: Request, res: Response) => {
-    const username = 'username'; 
+    const username = 'username';
     const password = 'password';
-    
+
     const {body} = req;
 
     if(!body.username || !body.password) {
@@ -51,15 +59,17 @@ app.post('/auth', async (req: Request, res: Response) => {
     }
 
     if(body.username === username && body.password === password) {
-        
+
         //const token = jwt.sign({ username: body.username }, privateKey , { expiresIn: '1h', algorithm: "RS256" });
 
         return res.json({message: 'Auth successful'});
     } else {
         return res.status(401).json({message: 'Auth failed, invalid credentials.'});
     }
-    
+
 });
 app.listen(port, () => {
     console.log('Running on http://locahost:8080');
 })
+
+//
