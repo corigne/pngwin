@@ -48,7 +48,8 @@ var verify_JWT = (token: JSON) => {
   // verify the user's JWT is valid, return true if valid, false if not
 }
 
-app.post('/auth', async (req: Request, res: Response) => {
+// login route
+app.post('/api/auth', async (req: Request, res: Response) => {
     const username = 'username';
     const password = 'password';
 
@@ -70,6 +71,14 @@ app.post('/auth', async (req: Request, res: Response) => {
 });
 app.listen(port, () => {
     console.log('Running on http://locahost:8080');
+})
+
+// logout route
+app.post('/api/logout', async (req: Request, res: Response) => {
+  // needs JWT
+  // if JWT is valid invalidate session under session_id
+  // if session_id is invalidated, return success
+  // else return failure
 })
 
 //
