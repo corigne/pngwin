@@ -42,10 +42,12 @@ app.get('/.well-known/jwks.json', (res: Response) => {
 
 var issue_JWT = (userid: number, session_id: number, length_days: number) => {
   // create a JWT with the user_id, session_id, role, iat, and exp baked in
+  // returns JWT or null
  }
 
 var verify_JWT = (token: JSON) => {
   // verify the user's JWT is valid, return true if valid, false if not
+  // return true or false
 }
 
 // login route
