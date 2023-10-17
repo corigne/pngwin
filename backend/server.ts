@@ -2,6 +2,7 @@ import {Jwks, JwksKey} from './types'
 import express, { Request, Response} from 'express';
 import * as dotenv from 'dotenv';
 import { Sequelize } from 'sequelize-typescript';
+import User from './models/User.model';
 
 // Option 1: Passing a connection URI
 const sequelize = new Sequelize({
@@ -17,7 +18,7 @@ const sequelize = new Sequelize({
 const jwt = require('jsonwebtoken');
 
 const app = express();
-const port = 8080;
+const port = 3000;
 
 dotenv.config();
 app.use(express.json());
@@ -89,9 +90,17 @@ app.post('/api/createUser', async (req: Request, res: Response) => {
     return res.json({user_created: false, reason: "User missing required fields."})
   }
 
-  const email: String = body.email;
-  const username: String = body.username;
+  const new_email: String = body.email;
+  const new_username: String = body.username;
 
+  const user = new User({ username: new_username, email: new_email })
+
+  if ( !(user instanceof User) )
+    return res.status(400).json({reason: "Invalid username or email."})
+
+  user.save()
+
+  return res.json({"new_user": user})
 })
 
 // login route
@@ -124,8 +133,13 @@ app.post('/api/logout', async (req: Request, res: Response) => {
   // else return failure
 })
 
+app.get('/api', async (req: Request, res: Response) => {
+  let date: Date = new Date()
+  return res.json({"pong": date})
+})
+
 app.listen(port, () => {
-    console.log('Running on http://locahost:8080');
+    console.log(`Running on http://locahost:${port}`);
 })
 
 //
