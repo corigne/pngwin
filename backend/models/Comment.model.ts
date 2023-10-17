@@ -1,26 +1,26 @@
-import { Column, DataType, ForeignKey, Model, NotNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
+import { Column, DataType, ForeignKey, Model, AllowNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
 import 'reflect-metadata';
 
 @Table({ tableName: 'comments' })
-export class Comment extends Model{
+export default class Comment extends Model{
 
-  @NotNull
-  @Column
+  @AllowNull(false)
+  @Column(DataType.BIGINT)
   public image_id: bigint
 
-  @NotNull
-  @Column
+  @AllowNull(false)
+  @Column(DataType.BIGINT)
   public author: bigint
 
-  @NotNull
-  @Column
+  @AllowNull(false)
+  @Column(DataType.INTEGER)
   public index: number
 
-  @NotNull
-  @Column
+  @AllowNull(false)
+  @Column(DataType.DATE)
   public created_on: Date;
 
-  @NotNull
+  @AllowNull(false)
   @Column(DataType.CHAR(400))
   public content: string
 

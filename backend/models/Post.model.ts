@@ -1,34 +1,34 @@
-import { Column, DataType, ForeignKey, Model, NotNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
+import { Column, DataType, ForeignKey, Model, AllowNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
 import 'reflect-metadata';
 
 @Table({ tableName: 'posts' })
-export class Post extends Model{
+export default class Post extends Model{
 
   @Unique
-  @NotNull
+  @AllowNull(false)
   @PrimaryKey
-  @Column
+  @Column(DataType.BIGINT)
   public post_id: bigint
 
-  @NotNull
-  @Column
+  @AllowNull(false)
+  @Column(DataType.BIGINT)
   public author: bigint
 
-  @NotNull
-  @Column
+  @AllowNull(false)
+  @Column(DataType.JSON)
   public tags: JSON
 
-  @NotNull
+  @AllowNull(false)
   @Column(DataType.CHAR(2048))
   public filepath: string
 
-  @Column
+  @Column(DataType.JSON)
   public votes: JSON
 
-  @Column
+  @Column(DataType.BIGINT)
   public score: bigint
 
-  @Column
+  @Column(DataType.DATE)
   public created_on: Date;
 
 }

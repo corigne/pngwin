@@ -1,45 +1,45 @@
-import { Column, CreatedAt, DataType, ForeignKey, Model, NotNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
+import { Column, CreatedAt, DataType, ForeignKey, Model, AllowNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
 import 'reflect-metadata';
 
 
 @Table({ tableName: 'users' })
-export class User extends Model{
+export default class User extends Model{
 
   @Unique
-  @NotNull
+  @AllowNull(false)
   @PrimaryKey
-  @Column
+  @Column(DataType.BIGINT)
   public user_id: bigint
 
-  @NotNull
+  @AllowNull(false)
   @Column(DataType.CHAR(75))
   public email: string
 
-  @NotNull
+  @AllowNull(false)
   @Column(DataType.CHAR(16))
   public username: string
 
-  @NotNull
+  @AllowNull(false)
   @Column(DataType.SMALLINT)
   public role: number
 
-  @Column
   @CreatedAt
+  @Column(DataType.DATE)
   public created_on: Date;
 
-  @Column
+  @Column(DataType.BOOLEAN)
   public banned: Boolean
 
-  @Column
+  @Column(DataType.JSON)
   public posts: JSON
 
-  @Column
+  @Column(DataType.JSON)
   public collections: JSON
 
-  @Column
+  @Column(DataType.CHAR(400))
   public descriptions: string
 
-  @Column
+  @Column(DataType.JSON)
   public fav_tags: JSON
 
   @Column(DataType.CHAR(2048))

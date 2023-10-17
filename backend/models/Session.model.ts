@@ -1,31 +1,31 @@
-import { Column, DataType, ForeignKey, Model, NotNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
+import { Column, DataType, ForeignKey, Model, AllowNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
 import 'reflect-metadata';
 
 @Table({ tableName: 'sessions' })
-export class Session extends Model{
+export default class Session extends Model{
 
-  @NotNull
+  @AllowNull(false)
   @PrimaryKey
-  @Column
+  @Column(DataType.BIGINT)
   public user_id: bigint
 
-  @Column
+  @Column(DataType.JSON)
   public token: JSON
 
-  @NotNull
-  @Column
+  @AllowNull(false)
+  @Column(DataType.BOOLEAN)
   public valid: Boolean
 
-  @NotNull
-  @Column
+  @AllowNull(false)
+  @Column(DataType.BOOLEAN)
   public pending: Boolean
 
-  @NotNull
+  @AllowNull(false)
   @Column(DataType.CHAR(6))
   public otp: string
 
-  @NotNull
-  @Column
+  @AllowNull(false)
+  @Column(DataType.BOOLEAN)
   public remembered: Boolean
 
 }

@@ -1,28 +1,28 @@
-import { Column, CreatedAt, DataType, ForeignKey, Model, NotNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
+import { Column, CreatedAt, DataType, ForeignKey, Model, AllowNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
 import 'reflect-metadata';
 
 @Table({ tableName: 'timeouts' })
-export class Timeout extends Model{
+export default class Timeout extends Model{
 
-  @NotNull
+  @AllowNull(false)
   @PrimaryKey
-  @Column
+  @Column(DataType.BIGINT)
   public user_id: bigint
 
-  @NotNull
+  @AllowNull(false)
   @CreatedAt
-  @Column
+  @Column(DataType.DATE)
   public start_on: Date
 
-  @NotNull
-  @Column
+  @AllowNull(false)
+  @Column(DataType.BIGINT)
   public length: bigint
 
-  @NotNull
-  @Column
+  @AllowNull(false)
+  @Column(DataType.BIGINT)
   public mod_id: bigint
 
-  @NotNull
+  @AllowNull(false)
   @Column(DataType.CHAR(400))
   public reason: string
 

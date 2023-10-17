@@ -1,38 +1,38 @@
-import { Column, DataType, ForeignKey, Model, NotNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
+import { AllowNull, Column, DataType, Model, PrimaryKey, Table, Unique } from 'sequelize-typescript';
 import 'reflect-metadata';
 
 @Table({ tableName: 'collections' })
-export class Collection extends Model{
+export default class Collection extends Model{
 
   @PrimaryKey
-  @NotNull
+  @AllowNull(false)
   @Unique
-  @Column
+  @Column(DataType.BIGINT)
   public collection_id: bigint
 
-  @NotNull
-  @Column
+  @AllowNull(false)
+  @Column(DataType.BIGINT)
   public author: bigint
 
-  @Column
+  @Column(DataType.JSON)
   public children: JSON
 
-  @Column
+  @Column(DataType.JSON)
   public votes: JSON
 
-  @Column
+  @Column(DataType.BIGINT)
   public score: bigint
 
-  @NotNull
+  @AllowNull(false)
   @Column(DataType.CHAR(40))
   public name: string
 
-  @NotNull
+  @AllowNull(false)
   @Column(DataType.CHAR(400))
   public description: string
 
-  @NotNull
-  @Column
+  @AllowNull(false)
+  @Column(DataType.JSON)
   public tags: JSON
 
 }
