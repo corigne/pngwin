@@ -2,14 +2,13 @@ import { Column, CreatedAt, DataType, ForeignKey, Model, AllowNull, PrimaryKey, 
 import 'reflect-metadata';
 
 
-@Table({ tableName: 'users' })
+@Table({ tableName: 'users', updatedAt: false })
 export default class User extends Model{
 
-  @AllowNull(false)
   @PrimaryKey
   @AutoIncrement
   @Column(DataType.BIGINT)
-  public user_id: bigint
+  declare public id: bigint
 
   @AllowNull(false)
   @Unique
@@ -40,7 +39,7 @@ export default class User extends Model{
   public collections: JSON
 
   @Column(DataType.CHAR(400))
-  public descriptions: string
+  public description: string
 
   @Column(DataType.JSON)
   public fav_tags: JSON
