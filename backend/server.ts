@@ -113,11 +113,12 @@ app.post('/api/auth', async (req: Request, res: Response) => {
     {
       //check if user is banned or timed out
       //if they are, return invalid
-      //else return valid
+      return res.json({valid: true});
     }
     else
     {
       //check invalid session id and return invalid
+      return res.json({valid: false});
     }
 });
 
