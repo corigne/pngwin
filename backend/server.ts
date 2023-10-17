@@ -1,6 +1,18 @@
 import {Jwks, JwksKey} from './types'
 import express, { Request, Response} from 'express';
 import * as dotenv from 'dotenv';
+import { Sequelize } from 'sequelize-typescript';
+
+// Option 1: Passing a connection URI
+const sequelize = new Sequelize({
+  database: 'pngwin-dev',
+  dialect: 'postgres',
+  username: 'postgres',
+  password: process.env.PG_PASS,
+  storage: ':memory:',
+  models: [__dirname + '/models'], // or [Player, Team],
+});
+
 //import jwt from 'jsonwebtoken'
 const jwt = require('jsonwebtoken');
 
@@ -48,7 +60,39 @@ var issue_JWT = (userid: number, session_id: number, length_days: number) => {
 var verify_JWT = (token: JSON) => {
   // verify the user's JWT is valid, return true if valid, false if not
   // return true or false
+
 }
+
+const start_session = (user_id: number) => {
+
+  // generate 6 digit OTP
+
+  // create a new user session in db for user_id, with OTP, valid=false, pending=true
+
+}
+
+app.post('/api/verifyOTP', async (req: Request, res: Response) => {
+  // takes in OTP and session_id
+
+  // validates OTP with session_id
+
+  // if valid issue JWT and return valid: true and jwt:token
+
+  // if invalid return valid: false and jwt:null
+})
+
+app.post('/api/createUser', async (req: Request, res: Response) => {
+
+  const {body} = req;
+
+  if (!body.email || !body.username) {
+    return res.json({user_created: false, reason: "User missing required fields."})
+  }
+
+  const email: String = body.email;
+  const username: String = body.username;
+
+})
 
 // login route
 app.post('/api/auth', async (req: Request, res: Response) => {
@@ -71,9 +115,6 @@ app.post('/api/auth', async (req: Request, res: Response) => {
     }
 
 });
-app.listen(port, () => {
-    console.log('Running on http://locahost:8080');
-})
 
 // logout route
 app.post('/api/logout', async (req: Request, res: Response) => {
@@ -81,6 +122,10 @@ app.post('/api/logout', async (req: Request, res: Response) => {
   // if JWT is valid invalidate session under session_id
   // if session_id is invalidated, return success
   // else return failure
+})
+
+app.listen(port, () => {
+    console.log('Running on http://locahost:8080');
 })
 
 //
