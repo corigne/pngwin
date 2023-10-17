@@ -2,6 +2,8 @@ import {Jwks, JwksKey} from './types'
 import express, { Request, Response} from 'express';
 import * as dotenv from 'dotenv';
 import { Sequelize } from 'sequelize-typescript';
+import e from 'express';
+import { Jwt } from 'jsonwebtoken';
 
 // Option 1: Passing a connection URI
 const sequelize = new Sequelize({
@@ -23,6 +25,7 @@ dotenv.config();
 app.use(express.json());
 
 const privateKey = process.env.RSA_PRIV_KEY;
+const pub = process.env.RSA_PUB_KEY;
 
 app.get('/.well-known/jwks.json', (res: Response) => {
     try {
@@ -53,14 +56,22 @@ app.get('/.well-known/jwks.json', (res: Response) => {
  });
 
 var issue_JWT = (userid: number, session_id: number, length_days: number) => {
-  // create a JWT with the user_id, session_id, role, iat, and exp baked in
-  // returns JWT or null
+    const token = jwt.sign({ userid: userid, session_id: session_id, role: 'user' },
+    privateKey , { expiresIn: length_days + 'd', algorithm: "RS256" });
+    return token;
  }
 
-var verify_JWT = (token: JSON) => {
-  // verify the user's JWT is valid, return true if valid, false if not
-  // return true or false
-
+ var verify_JWT = (token: JSON): Promise<boolean> => {
+  return new Promise((resolve) => {
+      jwt.verify(token, pub, (err: any) => {
+          if(err) {
+              console.log(err);
+              resolve(false);
+          } else {
+              resolve(true);
+          }
+      });
+  });
 }
 
 const start_session = (user_id: number) => {
@@ -96,24 +107,18 @@ app.post('/api/createUser', async (req: Request, res: Response) => {
 
 // login route
 app.post('/api/auth', async (req: Request, res: Response) => {
-    const username = 'username';
-    const password = 'password';
-
     const {body} = req;
-
-    if(!body.username || !body.password) {
-        return res.status(400).json({message: `Username and password are necessary.`})
+    let valid = await verify_JWT(JSON.parse(JSON.stringify(body.jwt)));
+    if(valid)
+    {
+      //check if user is banned or timed out
+      //if they are, return invalid
+      //else return valid
     }
-
-    if(body.username === username && body.password === password) {
-
-        //const token = jwt.sign({ username: body.username }, privateKey , { expiresIn: '1h', algorithm: "RS256" });
-
-        return res.json({message: 'Auth successful'});
-    } else {
-        return res.status(401).json({message: 'Auth failed, invalid credentials.'});
+    else
+    {
+      //check invalid session id and return invalid
     }
-
 });
 
 // logout route
@@ -125,7 +130,7 @@ app.post('/api/logout', async (req: Request, res: Response) => {
 })
 
 app.listen(port, () => {
-    console.log('Running on http://locahost:8080');
+  console.log(`Running on http://locahost:${port}`);
 })
 
 //
