@@ -1,26 +1,42 @@
 {
   "name": "backend",
-  "module": "server.ts",
-  "type": "module",
-  "devDependencies": {
-    "@types/node": "^20.8.6",
-    "@types/validator": "^13.11.3",
-    "bun-types": "latest"
+  "version": "1.0.0",
+  "description": "png.win express api",
+  "main": "server.ts",
+  "scripts": {
+    "build": "npx tsc",
+    "start": "node dist/server.js",
+    "dev": "nodemon server.ts"
   },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/corigne/pngwin.git"
   },
+  "author": "Nathan Jodoin, Libra Bates, Alex Ho",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/corigne/pngwin/issues"
+  },
+  "homepage": "https://github.com/corigne/pngwin#readme",
   "dependencies": {
-    "@types/express": "^4.17.19",
-    "@types/jsonwebtoken": "^9.0.3",
+    "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "jsonwebtoken": "8.5.1",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^7.6.2",
+    "nodemon": "^3.0.1",
     "pg": "^8.11.3",
     "pg-hstore": "^2.3.4",
     "reflect-metadata": "^0.1.13",
     "sequelize": "^6.33.0",
-    "sequelize-typescript": "^2.1.5",
-    "ts-node": "^10.9.1"
+    "sequelize-typescript": "^2.1.5"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.14",
+    "@types/express": "^4.17.19",
+    "@types/node": "^20.8.6",
+    "@types/validator": "^13.11.3",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.2.2"
   }
 }

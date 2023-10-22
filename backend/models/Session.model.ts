@@ -1,11 +1,15 @@
 import { Column, DataType, ForeignKey, Model, AllowNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
 import 'reflect-metadata';
+import { UUID } from 'crypto';
 
-@Table({ tableName: 'sessions' })
+@Table({ tableName: 'sessions' , updatedAt: false })
 export default class Session extends Model{
 
-  @AllowNull(false)
   @PrimaryKey
+  @Column(DataType.UUID)
+  declare public id: UUID
+
+  @AllowNull(false)
   @Column(DataType.BIGINT)
   public user_id: bigint
 

@@ -1,21 +1,23 @@
-import { Column, CreatedAt, DataType, ForeignKey, Model, AllowNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
+import { Column, CreatedAt, DataType, ForeignKey, Model, AllowNull, PrimaryKey, Table, Unique, IsEmail, AutoIncrement } from 'sequelize-typescript';
 import 'reflect-metadata';
 
 
-@Table({ tableName: 'users' })
+@Table({ tableName: 'users', updatedAt: false })
 export default class User extends Model{
 
-  @Unique
-  @AllowNull(false)
   @PrimaryKey
+  @AutoIncrement
   @Column(DataType.BIGINT)
-  public user_id: bigint
+  declare public id: bigint
 
   @AllowNull(false)
+  @Unique
+  @IsEmail
   @Column(DataType.CHAR(75))
   public email: string
 
   @AllowNull(false)
+  @Unique
   @Column(DataType.CHAR(16))
   public username: string
 
@@ -37,7 +39,7 @@ export default class User extends Model{
   public collections: JSON
 
   @Column(DataType.CHAR(400))
-  public descriptions: string
+  public description: string
 
   @Column(DataType.JSON)
   public fav_tags: JSON

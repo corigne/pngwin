@@ -1,40 +1,40 @@
 import {Jwks, JwksKey} from './types'
-import express, { Request, Response} from 'express';
-import * as dotenv from 'dotenv';
-import { Sequelize } from 'sequelize-typescript';
-import e from 'express';
-import { Jwt } from 'jsonwebtoken';
+import express, { Request, Response} from 'express'
+import * as dotenv from 'dotenv'
+import { Sequelize } from 'sequelize-typescript'
+import User from './models/User.model'
+
+//import jwt from 'jsonwebtoken'
+const jwt = require('jsonwebtoken')
+
+const app = express()
+const port = 3000
+
+dotenv.config()
+app.use(express.json())
 
 // Option 1: Passing a connection URI
 const sequelize = new Sequelize({
-  database: 'pngwin-dev',
+  database: 'pngwin_dev',
   dialect: 'postgres',
   username: 'postgres',
   password: process.env.PG_PASS,
   storage: ':memory:',
   models: [__dirname + '/models'], // or [Player, Team],
-});
+})
 
-//import jwt from 'jsonwebtoken'
-const jwt = require('jsonwebtoken');
 
-const app = express();
-const port = 8080;
-
-dotenv.config();
-app.use(express.json());
-
-const privateKey = process.env.RSA_PRIV_KEY;
-const pub = process.env.RSA_PUB_KEY;
+const privateKey = process.env.RSA_PRIV_KEY
+const pub = process.env.RSA_PUB_KEY
 
 app.get('/.well-known/jwks.json', (res: Response) => {
     try {
-        const modulus = process.env.RSA_KEY_N;
-        const exponent = process.env.RSA_KEY_E;
-        const kid = process.env.RSA_KEY_KID;
+        const modulus = process.env.RSA_KEY_N
+        const exponent = process.env.RSA_KEY_E
+        const kid = process.env.RSA_KEY_KID
 
         if(!modulus || !exponent || !kid){
-            throw new Error('RSA key informatiion is missing');
+            throw new Error('RSA key informatiion is missing')
         }
         const jwksKey: JwksKey = {
             kid,
@@ -43,17 +43,17 @@ app.get('/.well-known/jwks.json', (res: Response) => {
             use: 'sig',
             n: modulus,
             e: exponent,
-        };
+        }
 
         const jwks: Jwks = {
             keys: [jwksKey],
-        };
+        }
 
-        res.json(jwks);
+        res.json(jwks)
     } catch (error) {
-        res.status(500).json({error: 'Internal Server Error'});
+        res.status(500).json({error: 'Internal Server Error'})
     }
- });
+ })
 
 var issue_JWT = (userid: number, session_id: number, length_days: number) => {
     const token = jwt.sign({ userid: userid, session_id: session_id, role: 'user' },
@@ -94,15 +94,30 @@ app.post('/api/verifyOTP', async (req: Request, res: Response) => {
 
 app.post('/api/createUser', async (req: Request, res: Response) => {
 
-  const {body} = req;
+  const {body} = req
 
   if (!body.email || !body.username) {
     return res.json({user_created: false, reason: "User missing required fields."})
   }
 
-  const email: String = body.email;
-  const username: String = body.username;
+  const new_email: String = body.email
+  const new_username: String = body.username
+  const permissions_role: number = 0
+  const initially_banned: Boolean = false
 
+  const user = new User({
+    username: new_username,
+    email: new_email,
+    role: permissions_role,
+    banned: false
+  })
+
+  if ( !(user instanceof User) )
+    return res.status(400).json({reason: "Invalid username or email."})
+
+  user.save()
+
+  return res.json({"new_user": user})
 })
 
 // login route
@@ -130,8 +145,13 @@ app.post('/api/logout', async (req: Request, res: Response) => {
   // else return failure
 })
 
+app.get('/api', async (req: Request, res: Response) => {
+  let date: Date = new Date()
+  return res.json({"pong": date})
+})
+
 app.listen(port, () => {
-  console.log(`Running on http://locahost:${port}`);
+    console.log(`Running on http://locahost:${port}`)
 })
 
 //

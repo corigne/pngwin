@@ -1,14 +1,14 @@
 import { AllowNull, Column, DataType, Model, PrimaryKey, Table, Unique } from 'sequelize-typescript';
 import 'reflect-metadata';
 
-@Table({ tableName: 'collections' })
+@Table({ tableName: 'collections', updatedAt: false })
 export default class Collection extends Model{
 
   @PrimaryKey
   @AllowNull(false)
   @Unique
   @Column(DataType.BIGINT)
-  public collection_id: bigint
+  declare public id: bigint
 
   @AllowNull(false)
   @Column(DataType.BIGINT)

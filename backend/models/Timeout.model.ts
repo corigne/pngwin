@@ -1,7 +1,7 @@
 import { Column, CreatedAt, DataType, ForeignKey, Model, AllowNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
 import 'reflect-metadata';
 
-@Table({ tableName: 'timeouts' })
+@Table({ tableName: 'timeouts', updatedAt: false })
 export default class Timeout extends Model{
 
   @AllowNull(false)

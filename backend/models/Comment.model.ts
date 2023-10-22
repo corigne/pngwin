@@ -1,7 +1,7 @@
 import { Column, DataType, ForeignKey, Model, AllowNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
 import 'reflect-metadata';
 
-@Table({ tableName: 'comments' })
+@Table({ tableName: 'comments', updatedAt: false })
 export default class Comment extends Model{
 
   @AllowNull(false)
