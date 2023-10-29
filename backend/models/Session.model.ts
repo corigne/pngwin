@@ -1,4 +1,4 @@
-import { Column, DataType, ForeignKey, Model, AllowNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
+import { Column, DataType, IsEmail, Model, AllowNull, PrimaryKey, Table, CreatedAt } from 'sequelize-typescript';
 import 'reflect-metadata';
 import { UUID } from 'crypto';
 
@@ -7,7 +7,11 @@ export default class Session extends Model{
 
   @PrimaryKey
   @Column(DataType.UUID)
-  declare public id: UUID
+  public session_id: UUID
+
+  @CreatedAt
+  @Column(DataType.DATE)
+  public created_on: Date;
 
   @AllowNull(false)
   @Column(DataType.BIGINT)
@@ -28,7 +32,7 @@ export default class Session extends Model{
   @Column(DataType.CHAR(6))
   public otp: string
 
-  @AllowNull(false)
+  @AllowNull(true)
   @Column(DataType.BOOLEAN)
   public remembered: Boolean
 

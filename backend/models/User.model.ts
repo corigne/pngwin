@@ -46,5 +46,4 @@ export default class User extends Model{
 
   @Column(DataType.CHAR(2048))
   public img_path: string
-
 }

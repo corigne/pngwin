@@ -3,6 +3,10 @@ import express, { Request, Response} from 'express'
 import * as dotenv from 'dotenv'
 import { Sequelize } from 'sequelize-typescript'
 import User from './models/User.model'
+import Session from './models/Session.model'
+import { createTransport } from 'nodemailer'
+import Email from 'email-templates'
+import { v4 as uuidv4 } from 'uuid';
 
 //import jwt from 'jsonwebtoken'
 const jwt = require('jsonwebtoken')
@@ -13,6 +17,26 @@ const port = 3000
 dotenv.config()
 app.use(express.json())
 
+// Create a SMTP transporter object
+var transporter = createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // use SSL
+    auth: {
+        user: process.env.GMAIL,
+        pass: process.env.GMAIL_PASS
+    }
+})
+
+const email_message = new Email({
+ message: {
+   from: process.env.GMAIL
+ },
+ send: true,
+ transport: transporter,
+ preview: false
+})
+
 // Option 1: Passing a connection URI
 const sequelize = new Sequelize({
   database: 'pngwin_dev',
@@ -22,7 +46,6 @@ const sequelize = new Sequelize({
   storage: ':memory:',
   models: [__dirname + '/models'], // or [Player, Team],
 })
-
 
 const privateKey = process.env.RSA_PRIV_KEY
 
@@ -65,36 +88,154 @@ var verify_JWT = (token: JSON) => {
 
 }
 
-const start_session = (user_id: number) => {
+// creates a new user session to be validated in the database
+const create_session = async (in_user_id: number, is_remembered?: boolean) => {
 
-  // generate 6 digit OTP
+  // Does not validate email/username, I am assuming this is already done.
+  // Just checks for empty fields.
+  if ( in_user_id == null ) {
+    var missing: string = "";
+    missing += (in_user_id) ? " " : "user_id "
+    throw new Error("Missing Parameters:" + missing)
+  }
 
-  // create a new user session in db for user_id, with OTP, valid=false, pending=true
+  const user_id_exists: User|null = (await User.findOne({where: {id: in_user_id}}))
+  //console.log(user_id_exists)
+  if ( !user_id_exists ) {
+    throw new Error("provided user_id doesn't exist")
+  }
 
+  const email = user_id_exists.dataValues.email
+  const username = user_id_exists.dataValues.username
+
+  // Create a 6 digit OTP string and session_id
+  const newOTP: string = Math.floor(100000 + Math.random() * 900000 ).toString()
+  const new_session_id : string = uuidv4()
+
+  // attempt to create a session in the database
+  const session = new Session({
+    user_id: in_user_id,
+    token: null,
+    valid: false,
+    pending: true,
+    otp: newOTP,
+    remembered: is_remembered,
+    session_id: new_session_id,
+  })
+
+  if ( !(session instanceof Session) ) {
+    throw new Error("Unable to create session, unable to create model.")
+  }
+
+  try{
+    await session.save()
+  }
+  catch(err: any){
+    throw new Error("Unable to create session:" + err.toString())
+  }
+
+  try{
+    console.log(`Sending OTP to...\n User: ${username}\n Email: ${email}`)
+    await email_message.send({
+      template: 'otp',
+      message: {
+        to: email
+      },
+      locals: {
+        confirmation_code: newOTP,
+        username: username
+      }
+    })
+  }
+  catch(err: any){
+    await Session.destroy({where: {session_id: new_session_id}})
+    throw new Error("Unable to send verification email: " + err.toString())
+  }
+
+  // only runs if email sent successfully
+  return new_session_id
 }
 
+// verifies login session for a user
+// a new login attempt will be required for expired OTP
 app.post('/api/verifyOTP', async (req: Request, res: Response) => {
   // takes in OTP and session_id
+  const {body} = req
+  if (!body.OTP || !body.session_id) {
+    var missing: string = "";
+    missing += (body.OTP) ? " " : "OTP, "
+    missing += (body.session_id) ? " " : "session_id "
+    return res.status(418).json({session_verified: false, reason: "Missing:" + missing})
+  }
 
   // validates OTP with session_id
+  try{
+    await Session.findOne({
+      where:{
+        session_id: body.session_id
+      }
+    })
+      .then((session) => {
+        // TODO if the OTP has expired, return an Error stating the OTP has expired
 
-  // if valid issue JWT and return valid: true and jwt:token
+        // TODO else return a valid JWT
+        // TODO need to return the session JWT if the OTP is valid and the session
+        return res.status(200).json(session)
+      })
+  }
+  catch(err: any){
+    return res.status(400).json({session_verified: false, reason: "Session_id does not exist: ", error: err})
+  }
 
-  // if invalid return valid: false and jwt:null
+  // TODO if valid issue JWT and return valid: true and jwt:token
+
+  // TODO if invalid return valid: false and jwt:null
+})
+
+app.post('/api/testSession', async (req: Request, res: Response) => {
+  var session_id: string = ""
+
+  const {body} = req
+  if(!body.user_id){
+    return res.status(400).json({session_created: false, reason: "Missing user_id."})
+  }
+
+  await create_session(body.user_id)
+    .then((id) => {
+      res.status(200).json({session_created: true, session_id: id})
+    })
+    .catch((err) => {
+      res.status(400).json({session_created: false, reason: err.toString()})
+    })
+
 })
 
 app.post('/api/createUser', async (req: Request, res: Response) => {
 
   const {body} = req
-
   if (!body.email || !body.username) {
-    return res.json({user_created: false, reason: "User missing required fields."})
+    var missing: string = ""
+    missing += (body.email) ? " " : "email, "
+    missing += (body.username) ? " " : "username"
+    return res.status(418).json({user_created: false, reason: "User missing required fields:" + missing})
   }
 
+  // verify user doesn't already exist, return Error "user already exists" if exists
+  const existing_user = await User.findOne({
+    where:{
+      username: body.username
+    }
+  })
+
+  if (existing_user){
+    // console.log(existing_user)
+    return res.status(418).json({user_created: false, reason: "User already exists with that username."})
+  }
+
+  // create new user
   const new_email: String = body.email
   const new_username: String = body.username
   const permissions_role: number = 0
-  const initially_banned: Boolean = false
 
   const user = new User({
     username: new_username,
@@ -104,11 +245,16 @@ app.post('/api/createUser', async (req: Request, res: Response) => {
   })
 
   if ( !(user instanceof User) )
-    return res.status(400).json({reason: "Invalid username or email."})
+    return res.status(400).json({user_created: false, reason: "Invalid username or email."})
 
-  user.save()
+  try{
+    await user.save()
+  }
+  catch(err: any){
+    return res.status(500).json({user_created: false, reason: "Database error."})
+  }
 
-  return res.json({"new_user": user})
+  return res.status(200).json({user_created: true, "new_user": user})
 })
 
 // login route
@@ -135,9 +281,13 @@ app.post('/api/auth', async (req: Request, res: Response) => {
 
 // logout route
 app.post('/api/logout', async (req: Request, res: Response) => {
-  // needs JWT
+
+  // needs JWT verification
+
   // if JWT is valid invalidate session under session_id
+
   // if session_id is invalidated, return success
+
   // else return failure
 })
 
