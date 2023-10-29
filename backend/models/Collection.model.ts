@@ -1,4 +1,5 @@
-import { AllowNull, Column, DataType, Model, PrimaryKey, Table, Unique } from 'sequelize-typescript';
+import { AllowNull, Column, DataType, Model,
+  PrimaryKey, Table, Unique, CreatedAt } from 'sequelize-typescript';
 import 'reflect-metadata';
 
 @Table({ tableName: 'collections', updatedAt: false })
@@ -35,4 +36,7 @@ export default class Collection extends Model{
   @Column(DataType.JSON)
   public tags: JSON
 
+  @CreatedAt
+  @Column(DataType.DATE)
+  public created_on: Date;
 }
