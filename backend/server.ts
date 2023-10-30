@@ -3,6 +3,7 @@ import express, { Request, Response} from 'express'
 import * as dotenv from 'dotenv'
 import { Sequelize } from 'sequelize-typescript'
 import User from './models/User.model'
+import Session from './models/Session.model'
 
 //import jwt from 'jsonwebtoken'
 const jwt = require('jsonwebtoken')
@@ -17,7 +18,7 @@ app.use(express.json())
 const sequelize = new Sequelize({
   database: 'pngwin_dev',
   dialect: 'postgres',
-  username: 'postgres',
+  username: process.env.PG_USER,
   password: process.env.PG_PASS,
   storage: ':memory:',
   models: [__dirname + '/models'], // or [Player, Team],
@@ -59,7 +60,7 @@ var issue_JWT = (userid: number, session_id: number, length_days: number) => {
     const token = jwt.sign({ userid: userid, session_id: session_id, role: 'user' },
     privateKey , { expiresIn: length_days + 'd', algorithm: "RS256" });
     return token;
- }
+}
 
  var verify_JWT = (token: JSON): Promise<boolean> => {
   return new Promise((resolve) => {
@@ -124,15 +125,30 @@ app.post('/api/createUser', async (req: Request, res: Response) => {
 app.post('/api/auth', async (req: Request, res: Response) => {
     const {body} = req;
     let valid = await verify_JWT(JSON.parse(JSON.stringify(body.jwt)));
+    const payload = jwt.decode(body.jwt, {complete: true});
     if(valid)
     {
       //check if user is banned or timed out
-      //if they are, return invalid
-      return res.json({valid: true});
+      //query users table for id and if banned is true
+      const user = await User.findByPk(payload.payload.userid)
+      if (!user) {
+        return res.json({valid: false});
+      }
+      if (user.banned) {
+        return res.json({valid: false, banned:true});
+      }
+      return res.json({valid: true, banned: false});
     }
     else
     {
-      //check invalid session id and return invalid
+      //query 
+      console.log("Invalid JWT");
+      const [updateCount] = await Session.update({valid: false}, {where: {session_id: payload.payload.session_id}});
+      if (updateCount > 0) {
+        
+      } else {
+        console.log("Session not invalidated");
+      }
       return res.json({valid: false});
     }
 });
@@ -154,4 +170,8 @@ app.listen(port, () => {
     console.log(`Running on http://locahost:${port}`)
 })
 
-//
+app.post('/testJWT', async (req: Request, res: Response) => {
+  const {body} = req;
+  let token = issue_JWT(body.userid, body.session_id, body.length_days);
+  return res.json({jwt: token});
+})
