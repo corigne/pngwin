@@ -93,7 +93,6 @@ var verify_JWT = (token: JSON) => {
 // creates a new user session to be validated in the database
 const create_session = async (in_user_id: number, is_remembered?: boolean) => {
 
-  // Does not validate email/username, I am assuming this is already done.
   // Just checks for empty fields.
   if ( in_user_id == null ) {
     var missing: string = "";
@@ -235,117 +234,117 @@ app.post('/api/verifyOTP', async (req: Request, res: Response) => {
           return res.status(500).json(err)
         }
       }
+      }
+      else{
+        console.log("OTP Did Not Match")
+        return res.status(418).json({
+          verified: false, token: null, reason: "Invalid OTP"
+        })
+      }
+    })
+    .catch((err) => {
+      return res.status(400).json({session_verified: false, reason: "Session_id does not exist: ", error: err.toString()})
+    })
+  })
+
+  app.post('/api/testSession', async (req: Request, res: Response) => {
+    var session_id: string = ""
+
+    const {body} = req
+    if(!body.user_id){
+      return res.status(400).json({session_created: false, reason: "Missing user_id."})
     }
-    else{
-      console.log("OTP Did Not Match")
-      return res.status(418).json({
-        verified: false, token: null, reason: "Invalid OTP"
-      })
+
+    await create_session(body.user_id)
+    .then((session_id) => {
+      res.status(200).json({session_created: true, session_id: session_id})
+    })
+    .catch((err) => {
+      res.status(400).json({session_created: false, reason: err.toString()})
+    })
+
+  })
+
+  app.post('/api/createUser', async (req: Request, res: Response) => {
+
+    const {body} = req
+    if (!body.email || !body.username) {
+      var missing: string = ""
+      missing += (body.email) ? " " : "email, "
+      missing += (body.username) ? " " : "username"
+      return res.status(418).json({user_created: false, reason: "User missing required fields:" + missing})
     }
-  })
-  .catch((err) => {
-    return res.status(400).json({session_verified: false, reason: "Session_id does not exist: ", error: err.toString()})
-  })
-})
 
-app.post('/api/testSession', async (req: Request, res: Response) => {
-  var session_id: string = ""
+    // verify user doesn't already exist, return Error "user already exists" if exists
+    const existing_user = await User.findOne({
+      where:{
+        username: body.username
+      }
+    })
 
-  const {body} = req
-  if(!body.user_id){
-    return res.status(400).json({session_created: false, reason: "Missing user_id."})
-  }
-
-  await create_session(body.user_id)
-  .then((id) => {
-    res.status(200).json({session_created: true, session_id: id})
-  })
-  .catch((err) => {
-    res.status(400).json({session_created: false, reason: err.toString()})
-  })
-
-})
-
-app.post('/api/createUser', async (req: Request, res: Response) => {
-
-  const {body} = req
-  if (!body.email || !body.username) {
-    var missing: string = ""
-    missing += (body.email) ? " " : "email, "
-    missing += (body.username) ? " " : "username"
-    return res.status(418).json({user_created: false, reason: "User missing required fields:" + missing})
-  }
-
-  // verify user doesn't already exist, return Error "user already exists" if exists
-  const existing_user = await User.findOne({
-    where:{
-      username: body.username
+    if (existing_user){
+      // console.log(existing_user)
+      return res.status(418).json({user_created: false, reason: "User already exists with that username."})
     }
+
+    // create new user
+    const new_email: String = body.email
+    const new_username: String = body.username
+    const permissions_role: number = 0
+
+    const user = new User({
+      username: new_username,
+      email: new_email,
+      role: permissions_role,
+      banned: false
+    })
+
+    if ( !(user instanceof User) )
+      return res.status(400).json({user_created: false, reason: "Invalid username or email."})
+
+    try{
+      await user.save()
+    }
+    catch(err: any){
+      return res.status(500).json({user_created: false, reason: "Database error."})
+    }
+
+    return res.status(200).json({user_created: true, "new_user": user})
   })
 
-  if (existing_user){
-    // console.log(existing_user)
-    return res.status(418).json({user_created: false, reason: "User already exists with that username."})
-  }
+  // login route
+  app.post('/api/auth', async (req: Request, res: Response) => {
+    const username = 'username'
+    const password = 'password'
 
-  // create new user
-  const new_email: String = body.email
-  const new_username: String = body.username
-  const permissions_role: number = 0
+    const {body} = req
 
-  const user = new User({
-    username: new_username,
-    email: new_email,
-    role: permissions_role,
-    banned: false
+    if(!body.username || !body.password) {
+      return res.status(400).json({message: `Username and password are necessary.`})
+    }
+
+    if(body.username === username && body.password === password) {
+
+      //const token = jwt.sign({ username: body.username }, privateKey , { expiresIn: '1h', algorithm: "RS256" })
+
+      return res.json({message: 'Auth successful'})
+    } else {
+      return res.status(401).json({message: 'Auth failed, invalid credentials.'})
+    }
+
   })
 
-  if ( !(user instanceof User) )
-    return res.status(400).json({user_created: false, reason: "Invalid username or email."})
+  // logout route
+  app.post('/api/logout', async (req: Request, res: Response) => {
 
-  try{
-    await user.save()
-  }
-  catch(err: any){
-    return res.status(500).json({user_created: false, reason: "Database error."})
-  }
+    // needs JWT verification
 
-  return res.status(200).json({user_created: true, "new_user": user})
-})
+    // if JWT is valid invalidate session under session_id
 
-// login route
-app.post('/api/auth', async (req: Request, res: Response) => {
-  const username = 'username'
-  const password = 'password'
+    // if session_id is invalidated, return success
 
-  const {body} = req
-
-  if(!body.username || !body.password) {
-    return res.status(400).json({message: `Username and password are necessary.`})
-  }
-
-  if(body.username === username && body.password === password) {
-
-    //const token = jwt.sign({ username: body.username }, privateKey , { expiresIn: '1h', algorithm: "RS256" })
-
-    return res.json({message: 'Auth successful'})
-  } else {
-    return res.status(401).json({message: 'Auth failed, invalid credentials.'})
-  }
-
-})
-
-// logout route
-app.post('/api/logout', async (req: Request, res: Response) => {
-
-  // needs JWT verification
-
-  // if JWT is valid invalidate session under session_id
-
-  // if session_id is invalidated, return success
-
-  // else return failure
-})
+    // else return failure
+  })
 
 app.get('/api', async (req: Request, res: Response) => {
   let date: Date = new Date()
