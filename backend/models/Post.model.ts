@@ -1,4 +1,5 @@
-import { Column, DataType, ForeignKey, Model, AllowNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
+import { Column, DataType, ForeignKey, Model, AllowNull,
+  PrimaryKey, Table, Unique, CreatedAt } from 'sequelize-typescript';
 import 'reflect-metadata';
 
 @Table({ tableName: 'posts', updatedAt: false })
@@ -28,6 +29,7 @@ export default class Post extends Model{
   @Column(DataType.BIGINT)
   public score: bigint
 
+  @CreatedAt
   @Column(DataType.DATE)
   public created_on: Date;
 

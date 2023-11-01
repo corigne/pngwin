@@ -4,6 +4,11 @@ import * as dotenv from 'dotenv'
 import { Sequelize } from 'sequelize-typescript'
 import User from './models/User.model'
 import Session from './models/Session.model'
+import { createTransport } from 'nodemailer'
+import Email from 'email-templates'
+import { v4 as uuidv4 } from 'uuid';
+import { warn } from 'console'
+import { stringify } from 'querystring'
 
 //import jwt from 'jsonwebtoken'
 const jwt = require('jsonwebtoken')
@@ -13,6 +18,26 @@ const port = 3000
 
 dotenv.config()
 app.use(express.json())
+
+// Create a SMTP transporter object
+var transporter = createTransport({
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, // use SSL
+  auth: {
+    user: process.env.GMAIL,
+    pass: process.env.GMAIL_PASS
+  }
+})
+
+const email_message = new Email({
+  message: {
+    from: process.env.GMAIL
+  },
+  send: true,
+  transport: transporter,
+  preview: false
+})
 
 // Option 1: Passing a connection URI
 const sequelize = new Sequelize({
@@ -24,37 +49,36 @@ const sequelize = new Sequelize({
   models: [__dirname + '/models'], // or [Player, Team],
 })
 
-
 const privateKey = process.env.RSA_PRIV_KEY
 const pub = process.env.RSA_PUB_KEY
 
 app.get('/.well-known/jwks.json', (res: Response) => {
-    try {
-        const modulus = process.env.RSA_KEY_N
-        const exponent = process.env.RSA_KEY_E
-        const kid = process.env.RSA_KEY_KID
+  try {
+    const modulus = process.env.RSA_KEY_N
+    const exponent = process.env.RSA_KEY_E
+    const kid = process.env.RSA_KEY_KID
 
-        if(!modulus || !exponent || !kid){
-            throw new Error('RSA key informatiion is missing')
-        }
-        const jwksKey: JwksKey = {
-            kid,
-            kty: 'RSA',
-            alg: 'RS256',
-            use: 'sig',
-            n: modulus,
-            e: exponent,
-        }
-
-        const jwks: Jwks = {
-            keys: [jwksKey],
-        }
-
-        res.json(jwks)
-    } catch (error) {
-        res.status(500).json({error: 'Internal Server Error'})
+    if(!modulus || !exponent || !kid){
+      throw new Error('RSA key informatiion is missing')
     }
- })
+    const jwksKey: JwksKey = {
+      kid,
+      kty: 'RSA',
+      alg: 'RS256',
+      use: 'sig',
+      n: modulus,
+      e: exponent,
+    }
+
+    const jwks: Jwks = {
+      keys: [jwksKey],
+    }
+
+    res.json(jwks)
+  } catch (error) {
+    res.status(500).json({error: 'Internal Server Error'})
+  }
+})
 
 var issue_JWT = (userid: number, session_id: number, length_days: number) => {
     const token = jwt.sign({ userid: userid, session_id: session_id, role: 'user' },
@@ -75,91 +99,271 @@ var issue_JWT = (userid: number, session_id: number, length_days: number) => {
   });
 }
 
-const start_session = (user_id: number) => {
+// creates a new user session to be validated in the database
+const create_session = async (in_user_id: number, is_remembered?: boolean) => {
 
-  // generate 6 digit OTP
-
-  // create a new user session in db for user_id, with OTP, valid=false, pending=true
-
-}
-
-app.post('/api/verifyOTP', async (req: Request, res: Response) => {
-  // takes in OTP and session_id
-
-  // validates OTP with session_id
-
-  // if valid issue JWT and return valid: true and jwt:token
-
-  // if invalid return valid: false and jwt:null
-})
-
-app.post('/api/createUser', async (req: Request, res: Response) => {
-
-  const {body} = req
-
-  if (!body.email || !body.username) {
-    return res.json({user_created: false, reason: "User missing required fields."})
+  // Just checks for empty fields.
+  if ( in_user_id == null ) {
+    var missing: string = "";
+    missing += (in_user_id) ? " " : "user_id "
+    throw new Error("Missing Parameters:" + missing)
   }
 
-  const new_email: String = body.email
-  const new_username: String = body.username
-  const permissions_role: number = 0
-  const initially_banned: Boolean = false
+  const user_id_exists: User|null = (await User.findOne({where: {id: in_user_id}}))
+  //console.log(user_id_exists)
+  if ( !user_id_exists ) {
+    throw new Error("provided user_id doesn't exist")
+  }
 
-  const user = new User({
-    username: new_username,
-    email: new_email,
-    role: permissions_role,
-    banned: false
+  const email = user_id_exists.dataValues.email
+  const username = user_id_exists.dataValues.username
+
+  // Create a 6 digit OTP string and session_id
+  const newOTP: string = Math.floor(100000 + Math.random() * 900000 ).toString()
+  const new_session_id : string = uuidv4()
+
+  // attempt to create a session in the database
+  const session = new Session({
+    user_id: in_user_id,
+    token: null,
+    valid: false,
+    pending: true,
+    otp: newOTP,
+    remembered: is_remembered,
+    session_id: new_session_id,
   })
 
-  if ( !(user instanceof User) )
-    return res.status(400).json({reason: "Invalid username or email."})
+  if ( !(session instanceof Session) ) {
+    throw new Error("Unable to create session, unable to create model.")
+  }
 
-  user.save()
+  try{
+    await session.save()
+  }
+  catch(err: any){
+    throw new Error("Unable to create session:" + err.toString())
+  }
 
-  return res.json({"new_user": user})
-})
+  try{
+    console.log(`Sending OTP to...\n User: ${username}\n Email: ${email}`)
+    await email_message.send({
+      template: 'otp',
+      message: {
+        to: email
+      },
+      locals: {
+        confirmation_code: newOTP,
+        username: username
+      }
+    })
+  }
+  catch(err: any){
+    await Session.destroy({where: {session_id: new_session_id}})
+    throw new Error("Unable to send verification email: " + err.toString())
+  }
+  // only runs if email sent successfully
+  return new_session_id
+}
 
+// verifies login session for a user
+// a new login attempt will be required for expired OTP
+app.post('/api/verifyOTP', async (req: Request, res: Response) => {
+  // takes in OTP and session_id
+  const {body} = req
+  if (!body.OTP || !body.session_id) {
+    var missing: string = "";
+    missing += (body.OTP) ? " " : "OTP, "
+    missing += (body.session_id) ? " " : "session_id "
+    return res.status(418).json({session_verified: false, reason: "Missing:" + missing})
+  }
+  const OTP = body.OTP
+  const session_id = body.session_id
+
+  // validates OTP with session_id
+  await Session.findOne({
+    where:{
+      session_id: session_id
+    }
+  })
+  .then((session) => {
+
+    if (!session){
+      return res.status(400).json({
+        verified: false,
+        token: null,
+        reason: "Session not found."
+      })
+    }
+
+    // TODO DELETEME
+    console.log(session)
+
+    if(session?.dataValues.pending === false){
+      return res.status(401).json({
+        verified: false,
+        token: null,
+        reason: "Session is already verified or expired."
+      })
+    }
+
+    if(OTP === session?.dataValues.otp){
+      console.log("OTP Matched")
+
+      var created: Date = new Date(session?.dataValues.created_on.toString())
+
+      const elapsed_min: number = (Date.now() - created.getTime()) /1000/60
+      console.log(`Elapsed time in min: ${elapsed_min}`)
+      // Check for expired OTP Session
+      // if (elapsed_min > 5){
+      if (!true){
+        // return an Error stating the OTP has expired
+        return res.status(401).json({
+          verified: false, token: null, reason: "OTP Expired"
+        })
+      }
+
+      else{
+        // validate the session
+        // generate the jwt and store it in the session
+        try{
+          session.set({
+            pending : false,
+            valid : true,
+            token : JSON.parse('{ "test": "placeholder" }')
+          })
+          session.save()
+          .then((result) => {
+            console.log(result)
+            return res.status(200).json(result)
+          })
+        }
+        catch(err: any){
+          console.log("Database Error:" + err.toString())
+          return res.status(500).json(err)
+        }
+      }
+      }
+      else{
+        console.log("OTP Did Not Match")
+        return res.status(418).json({
+          verified: false, token: null, reason: "Invalid OTP"
+        })
+      }
+    })
+    .catch((err) => {
+      return res.status(400).json({session_verified: false, reason: "Session_id does not exist: ", error: err.toString()})
+    })
+  })
+
+  app.post('/api/testSession', async (req: Request, res: Response) => {
+    var session_id: string = ""
+
+    const {body} = req
+    if(!body.user_id){
+      return res.status(400).json({session_created: false, reason: "Missing user_id."})
+    }
+
+    await create_session(body.user_id)
+    .then((session_id) => {
+      res.status(200).json({session_created: true, session_id: session_id})
+    })
+    .catch((err) => {
+      res.status(400).json({session_created: false, reason: err.toString()})
+    })
+
+  })
+
+  app.post('/api/createUser', async (req: Request, res: Response) => {
+
+    const {body} = req
+    if (!body.email || !body.username) {
+      var missing: string = ""
+      missing += (body.email) ? " " : "email, "
+      missing += (body.username) ? " " : "username"
+      return res.status(418).json({user_created: false, reason: "User missing required fields:" + missing})
+    }
+
+    // verify user doesn't already exist, return Error "user already exists" if exists
+    const existing_user = await User.findOne({
+      where:{
+        username: body.username
+      }
+    })
+
+    if (existing_user){
+      // console.log(existing_user)
+      return res.status(418).json({user_created: false, reason: "User already exists with that username."})
+    }
+
+    // create new user
+    const new_email: String = body.email
+    const new_username: String = body.username
+    const permissions_role: number = 0
+
+    const user = new User({
+      username: new_username,
+      email: new_email,
+      role: permissions_role,
+      banned: false
+    })
+
+    if ( !(user instanceof User) )
+      return res.status(400).json({user_created: false, reason: "Invalid username or email."})
+
+    try{
+      await user.save()
+    }
+    catch(err: any){
+      return res.status(500).json({user_created: false, reason: "Database error."})
+    }
+
+    return res.status(200).json({user_created: true, "new_user": user})
+  })
+
+  // login route
 // login route
 app.post('/api/auth', async (req: Request, res: Response) => {
-    const {body} = req;
-    let valid = await verify_JWT(JSON.parse(JSON.stringify(body.jwt)));
-    const payload = jwt.decode(body.jwt, {complete: true});
-    if(valid)
-    {
-      //check if user is banned or timed out
-      //query users table for id and if banned is true
-      const user = await User.findByPk(payload.payload.userid)
-      if (!user) {
-        return res.json({valid: false});
-      }
-      if (user.banned) {
-        return res.json({valid: false, banned:true});
-      }
-      return res.json({valid: true, banned: false});
-    }
-    else
-    {
-      //query 
-      console.log("Invalid JWT");
-      const [updateCount] = await Session.update({valid: false}, {where: {session_id: payload.payload.session_id}});
-      if (updateCount > 0) {
-        
-      } else {
-        console.log("Session not invalidated");
-      }
+  const {body} = req;
+  let valid = await verify_JWT(JSON.parse(JSON.stringify(body.jwt)));
+  const payload = jwt.decode(body.jwt, {complete: true});
+  if(valid)
+  {
+    //check if user is banned or timed out
+    //query users table for id and if banned is true
+    const user = await User.findByPk(payload.payload.userid)
+    if (!user) {
       return res.json({valid: false});
     }
+    if (user.banned) {
+      return res.json({valid: false, banned:true});
+    }
+    return res.json({valid: true, banned: false});
+  }
+  else
+  {
+    //query 
+    console.log("Invalid JWT");
+    const [updateCount] = await Session.update({valid: false}, {where: {session_id: payload.payload.session_id}});
+    if (updateCount > 0) {
+      
+    } else {
+      console.log("Session not invalidated");
+    }
+    return res.json({valid: false});
+  }
 });
 
-// logout route
-app.post('/api/logout', async (req: Request, res: Response) => {
-  // needs JWT
-  // if JWT is valid invalidate session under session_id
-  // if session_id is invalidated, return success
-  // else return failure
-})
+  // logout route
+  app.post('/api/logout', async (req: Request, res: Response) => {
+
+    // needs JWT verification
+
+    // if JWT is valid invalidate session under session_id
+
+    // if session_id is invalidated, return success
+
+    // else return failure
+  })
 
 app.get('/api', async (req: Request, res: Response) => {
   let date: Date = new Date()
@@ -167,7 +371,7 @@ app.get('/api', async (req: Request, res: Response) => {
 })
 
 app.listen(port, () => {
-    console.log(`Running on http://locahost:${port}`)
+  console.log(`Running on http://locahost:${port}`)
 })
 
 app.post('/testJWT', async (req: Request, res: Response) => {

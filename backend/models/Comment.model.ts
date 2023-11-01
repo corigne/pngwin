@@ -1,4 +1,5 @@
-import { Column, DataType, ForeignKey, Model, AllowNull, PrimaryKey, Table, Unique } from 'sequelize-typescript';
+import { Column, DataType, ForeignKey, Model, AllowNull,
+  PrimaryKey, Table, Unique, CreatedAt } from 'sequelize-typescript';
 import 'reflect-metadata';
 
 @Table({ tableName: 'comments', updatedAt: false })
@@ -16,6 +17,7 @@ export default class Comment extends Model{
   @Column(DataType.INTEGER)
   public index: number
 
+  @CreatedAt
   @AllowNull(false)
   @Column(DataType.DATE)
   public created_on: Date;
