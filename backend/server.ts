@@ -1,25 +1,28 @@
-import {Jwks, JwksKey} from './types'
+// express imports
 import express, { Request, Response} from 'express'
 import * as dotenv from 'dotenv'
+
+// sequelize imports for postgresql
 import { Sequelize } from 'sequelize-typescript'
 import User from './models/User.model'
 import Session from './models/Session.model'
+
+// nodemailer and email-templates stuff
 import { createTransport } from 'nodemailer'
 import Email from 'email-templates'
-import { v4 as uuidv4 } from 'uuid';
-import { warn } from 'console'
-import { stringify } from 'querystring'
 
-//import jwt from 'jsonwebtoken'
+// jwt imports
+import {Jwks, JwksKey} from './types'
+import { v4 as uuidv4 } from 'uuid';
 const jwt = require('jsonwebtoken')
 
+// Express Setup
 const app = express()
 const port = 3000
-
 dotenv.config()
 app.use(express.json())
 
-// Create a SMTP transporter object
+// Nodemailer Transport Setup
 var transporter = createTransport({
   host: 'smtp.gmail.com',
   port: 465,
@@ -29,7 +32,7 @@ var transporter = createTransport({
     pass: process.env.GMAIL_PASS
   }
 })
-
+// Email-templates Connected To Nodemailer
 const email_message = new Email({
   message: {
     from: process.env.GMAIL
@@ -39,7 +42,7 @@ const email_message = new Email({
   preview: false
 })
 
-// Option 1: Passing a connection URI
+// Sequelize Setup
 const sequelize = new Sequelize({
   database: 'pngwin_dev',
   dialect: 'postgres',
@@ -49,36 +52,13 @@ const sequelize = new Sequelize({
   models: [__dirname + '/models'], // or [Player, Team],
 })
 
+// JWT Setup
 const privateKey = process.env.RSA_PRIV_KEY
 const pub = process.env.RSA_PUB_KEY
 
-app.get('/.well-known/jwks.json', (res: Response) => {
-  try {
-    const modulus = process.env.RSA_KEY_N
-    const exponent = process.env.RSA_KEY_E
-    const kid = process.env.RSA_KEY_KID
-
-    if(!modulus || !exponent || !kid){
-      throw new Error('RSA key informatiion is missing')
-    }
-    const jwksKey: JwksKey = {
-      kid,
-      kty: 'RSA',
-      alg: 'RS256',
-      use: 'sig',
-      n: modulus,
-      e: exponent,
-    }
-
-    const jwks: Jwks = {
-      keys: [jwksKey],
-    }
-
-    res.json(jwks)
-  } catch (error) {
-    res.status(500).json({error: 'Internal Server Error'})
-  }
-})
+///////////////////
+// Helper Functions
+// Internal to API
 
 var issue_JWT = (userid: number, session_id: number, length_days: number) => {
     const token = jwt.sign({ userid: userid, session_id: session_id, role: 'user' },
@@ -164,6 +144,130 @@ const create_session = async (in_user_id: number, is_remembered?: boolean) => {
   // only runs if email sent successfully
   return new_session_id
 }
+
+/////////////////////////////////
+// API Endpoints ////////////////
+// External Facing API Functions
+
+app.get('/api', async (req: Request, res: Response) => {
+  let date: Date = new Date()
+  return res.json({"pong": date})
+})
+
+// login route
+app.post('/api/auth', async (req: Request, res: Response) => {
+  const {body} = req;
+  let valid = await verify_JWT(JSON.parse(JSON.stringify(body.jwt)));
+  const payload = jwt.decode(body.jwt, {complete: true});
+  if(valid)
+  {
+    //check if user is banned or timed out
+    //query users table for id and if banned is true
+    const user = await User.findByPk(payload.payload.userid)
+    if (!user) {
+      return res.json({valid: false});
+    }
+    if (user.banned) {
+      return res.json({valid: false, banned:true});
+    }
+    return res.json({valid: true, banned: false});
+  }
+  else
+  {
+    //query
+    console.log("Invalid JWT");
+    const [updateCount] = await Session.update({valid: false}, {where: {session_id: payload.payload.session_id}});
+    if (updateCount > 0) {
+
+    } else {
+      console.log("Session not invalidated");
+    }
+    return res.json({valid: false});
+  }
+});
+
+app.post('/api/createUser', async (req: Request, res: Response) => {
+
+  const {body} = req
+  if (!body.email || !body.username) {
+    var missing: string = ""
+    missing += (body.email) ? " " : "email, "
+    missing += (body.username) ? " " : "username"
+    return res.status(418).json({user_created: false, reason: "User missing required fields:" + missing})
+  }
+
+  // verify user doesn't already exist, return Error "user already exists" if exists
+  const existing_user = await User.findOne({
+    where:{
+      username: body.username
+    }
+  })
+
+  if (existing_user){
+    // console.log(existing_user)
+    return res.status(418).json({user_created: false, reason: "User already exists with that username."})
+  }
+
+  // create new user
+  const new_email: String = body.email
+  const new_username: String = body.username
+  const permissions_role: number = 0
+
+  const user = new User({
+    username: new_username,
+    email: new_email,
+    role: permissions_role,
+    banned: false
+  })
+
+  if ( !(user instanceof User) )
+    return res.status(400).json({user_created: false, reason: "Invalid username or email."})
+
+  try{
+    await user.save()
+  }
+  catch(err: any){
+    return res.status(500).json({user_created: false, reason: "Database error."})
+  }
+
+  return res.status(200).json({user_created: true, "new_user": user})
+})
+
+// logout route
+app.post('/api/logout', async (req: Request, res: Response) => {
+
+  // needs JWT verification
+
+  // if JWT is valid invalidate session under session_id
+
+  // if session_id is invalidated, return success
+
+  // else return failure
+})
+
+app.post('/testSession', async (req: Request, res: Response) => {
+  var session_id: string = ""
+
+  const {body} = req
+  if(!body.user_id){
+    return res.status(400).json({session_created: false, reason: "Missing user_id."})
+  }
+
+  await create_session(body.user_id)
+  .then((session_id) => {
+    res.status(200).json({session_created: true, session_id: session_id})
+  })
+  .catch((err) => {
+    res.status(400).json({session_created: false, reason: err.toString()})
+  })
+
+})
+
+app.post('/testJWT', async (req: Request, res: Response) => {
+  const {body} = req;
+  let token = issue_JWT(body.userid, body.session_id, body.length_days);
+  return res.json({jwt: token});
+})
 
 // verifies login session for a user
 // a new login attempt will be required for expired OTP
@@ -255,127 +359,34 @@ app.post('/api/verifyOTP', async (req: Request, res: Response) => {
     })
   })
 
-  app.post('/api/testSession', async (req: Request, res: Response) => {
-    var session_id: string = ""
+app.get('/.well-known/jwks.json', (res: Response) => {
+  try {
+    const modulus = process.env.RSA_KEY_N
+    const exponent = process.env.RSA_KEY_E
+    const kid = process.env.RSA_KEY_KID
 
-    const {body} = req
-    if(!body.user_id){
-      return res.status(400).json({session_created: false, reason: "Missing user_id."})
+    if(!modulus || !exponent || !kid){
+      throw new Error('RSA key informatiion is missing')
+    }
+    const jwksKey: JwksKey = {
+      kid,
+      kty: 'RSA',
+      alg: 'RS256',
+      use: 'sig',
+      n: modulus,
+      e: exponent,
     }
 
-    await create_session(body.user_id)
-    .then((session_id) => {
-      res.status(200).json({session_created: true, session_id: session_id})
-    })
-    .catch((err) => {
-      res.status(400).json({session_created: false, reason: err.toString()})
-    })
-
-  })
-
-  app.post('/api/createUser', async (req: Request, res: Response) => {
-
-    const {body} = req
-    if (!body.email || !body.username) {
-      var missing: string = ""
-      missing += (body.email) ? " " : "email, "
-      missing += (body.username) ? " " : "username"
-      return res.status(418).json({user_created: false, reason: "User missing required fields:" + missing})
+    const jwks: Jwks = {
+      keys: [jwksKey],
     }
 
-    // verify user doesn't already exist, return Error "user already exists" if exists
-    const existing_user = await User.findOne({
-      where:{
-        username: body.username
-      }
-    })
-
-    if (existing_user){
-      // console.log(existing_user)
-      return res.status(418).json({user_created: false, reason: "User already exists with that username."})
-    }
-
-    // create new user
-    const new_email: String = body.email
-    const new_username: String = body.username
-    const permissions_role: number = 0
-
-    const user = new User({
-      username: new_username,
-      email: new_email,
-      role: permissions_role,
-      banned: false
-    })
-
-    if ( !(user instanceof User) )
-      return res.status(400).json({user_created: false, reason: "Invalid username or email."})
-
-    try{
-      await user.save()
-    }
-    catch(err: any){
-      return res.status(500).json({user_created: false, reason: "Database error."})
-    }
-
-    return res.status(200).json({user_created: true, "new_user": user})
-  })
-
-  // login route
-// login route
-app.post('/api/auth', async (req: Request, res: Response) => {
-  const {body} = req;
-  let valid = await verify_JWT(JSON.parse(JSON.stringify(body.jwt)));
-  const payload = jwt.decode(body.jwt, {complete: true});
-  if(valid)
-  {
-    //check if user is banned or timed out
-    //query users table for id and if banned is true
-    const user = await User.findByPk(payload.payload.userid)
-    if (!user) {
-      return res.json({valid: false});
-    }
-    if (user.banned) {
-      return res.json({valid: false, banned:true});
-    }
-    return res.json({valid: true, banned: false});
+    res.json(jwks)
+  } catch (error) {
+    res.status(500).json({error: 'Internal Server Error'})
   }
-  else
-  {
-    //query 
-    console.log("Invalid JWT");
-    const [updateCount] = await Session.update({valid: false}, {where: {session_id: payload.payload.session_id}});
-    if (updateCount > 0) {
-      
-    } else {
-      console.log("Session not invalidated");
-    }
-    return res.json({valid: false});
-  }
-});
-
-  // logout route
-  app.post('/api/logout', async (req: Request, res: Response) => {
-
-    // needs JWT verification
-
-    // if JWT is valid invalidate session under session_id
-
-    // if session_id is invalidated, return success
-
-    // else return failure
-  })
-
-app.get('/api', async (req: Request, res: Response) => {
-  let date: Date = new Date()
-  return res.json({"pong": date})
 })
 
 app.listen(port, () => {
   console.log(`Running on http://locahost:${port}`)
-})
-
-app.post('/testJWT', async (req: Request, res: Response) => {
-  const {body} = req;
-  let token = issue_JWT(body.userid, body.session_id, body.length_days);
-  return res.json({jwt: token});
 })
