@@ -14,6 +14,7 @@ import Email from 'email-templates'
 // jwt imports
 import {Jwks, JwksKey} from './types'
 import { v4 as uuidv4 } from 'uuid';
+import { warn } from 'console'
 const jwt = require('jsonwebtoken')
 
 // Express Setup
@@ -267,6 +268,57 @@ app.post('/testJWT', async (req: Request, res: Response) => {
   const {body} = req;
   let token = issue_JWT(body.userid, body.session_id, body.length_days);
   return res.json({jwt: token});
+})
+
+app.get('/api/userID', async (req: Request, res: Response) => {
+  if("username" in req.query ){
+
+    const username: string | undefined = req.query.username?.toString()
+
+    if(!username){
+      return res.status(418).json({
+        user_exists: false,
+        username: null,
+        error: `Error: Field "username" is not defined in the query.`
+      })
+    }
+
+    const user = await User.findOne({
+      attributes: ['id'],
+      where: { username: username }
+    })
+    .then((user) => {
+      if(user === null){
+        // Catches user DNE
+        return res.status(200).json({
+          user_exists: false,
+          username: null,
+          error: `User with username '${username}' does not exist.`
+        })
+      }
+
+      const userdata = user.get({plain:true})
+      return res.json({user_id: userdata.id})
+
+    })
+    .catch((err) => {
+      console.log("ERROR:" + err.toString())
+      // Catches database errors.
+      return res.status(500).json({
+        user_exists: null,
+        username: null,
+        error: err.toString()
+      })
+    })
+
+  }
+  else{
+    return res.status(418).json({
+      user_exists: false,
+      username: null,
+      error: `No username provided.`
+    })
+  }
 })
 
 // verifies login session for a user
