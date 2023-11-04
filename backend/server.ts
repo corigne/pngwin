@@ -14,8 +14,6 @@ import Email from 'email-templates'
 // jwt imports
 import {Jwks, JwksKey} from './types'
 import { v4 as uuidv4, validate as validateUUID, parse as parseUUID} from 'uuid';
-import { warn } from 'console'
-import { wrap } from 'module'
 const jwt = require('jsonwebtoken')
 
 // Express Setup
@@ -273,9 +271,9 @@ app.delete('/api/logout', async (req: Request, res: Response) => {
   // if session_id is invalidated, return success
   const payload: any = jwt.decode(body.jwt);
 
-  await delete_session(payload.session_id)
-  .then(() => res.status(200).json({logout:true}))
-  .catch((err:any) => res.status(500).json({logout:false, error:err}))
+await delete_session(payload.session_id)
+.then(() => res.status(200).json({logout:true}))
+.catch((err:any) => res.status(500).json({logout:false, error:err}))
 })
 
 app.post('/testSession', async (req: Request, res: Response) => {
