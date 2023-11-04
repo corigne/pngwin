@@ -1,5 +1,6 @@
-<script lang="ts">
+<script>
     import "bootstrap/dist/css/bootstrap.min.css";
+    import LogInButton from "$lib/LogInButton/+page.svelte";
     import {
         Button,
         Modal,
@@ -15,35 +16,13 @@
         InputGroup,
         InputGroupText,
     } from "sveltestrap";
-    let open = false;
-    const loginToggle = () => (open = !open);
 </script>
 
 <div class="Login_btn">
     <Container fluid>
         <Row>
             <Col class="text-end">
-                <Button class="login" color="warning" on:click={loginToggle}
-                    >Login</Button
-                >
-                <Modal isOpen={open} backdrop={false} {loginToggle}>
-                    <ModalHeader {loginToggle}>Login</ModalHeader>
-                    <ModalBody>
-                        <h6>Username</h6>
-                        <InputGroup>
-                            <Input
-                                placeholder="Ex. _bbygworlpngwin"
-                            />
-                        </InputGroup>
-                    </ModalBody>
-                    <ModalFooter>
-                        <Button color="warning">Sign Up</Button>
-                        <Button color="warning">Submit</Button>
-                        <Button color="secondary" on:click={loginToggle}
-                            >Cancel</Button
-                        >
-                    </ModalFooter>
-                </Modal>
+                <LogInButton />
             </Col>
         </Row>
     </Container>

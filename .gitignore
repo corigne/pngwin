@@ -1,5 +1,8 @@
 ### Node ###
 
+#Mac files
+.DS_Store
+
 # PostgreSQL
 *.pgsql
 
