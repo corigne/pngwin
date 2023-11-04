@@ -16,31 +16,30 @@
         InputGroupText,
     } from "sveltestrap";
     let open = false;
-    const toggle = () => (open = !open);
+    const loginToggle = () => (open = !open);
 </script>
 
 <div class="Login_btn">
     <Container fluid>
         <Row>
             <Col class="text-end">
-                <Button color="warning" on:click={toggle}>Login</Button>
-                <Modal isOpen={open} backdrop={false} {toggle}>
-                    <ModalHeader {toggle}>Login</ModalHeader>
+                <Button class="login" color="warning" on:click={loginToggle}
+                    >Login</Button
+                >
+                <Modal isOpen={open} backdrop={false} {loginToggle}>
+                    <ModalHeader {loginToggle}>Login</ModalHeader>
                     <ModalBody>
-                        <h6>Email</h6>
+                        <h6>Username</h6>
                         <InputGroup>
                             <Input
-                                placeholder="Ex. bbygworlpngwin@pngwin.com"
+                                placeholder="Ex. _bbygworlpngwin"
                             />
                         </InputGroup>
                     </ModalBody>
                     <ModalFooter>
-                        <Button color="warning" on:click={toggle}
-                            >Sign Up</Button
-                        >
-                        <Button color="warning" on:click={toggle}>Submit</Button
-                        >
-                        <Button color="secondary" on:click={toggle}
+                        <Button color="warning">Sign Up</Button>
+                        <Button color="warning">Submit</Button>
+                        <Button color="secondary" on:click={loginToggle}
                             >Cancel</Button
                         >
                     </ModalFooter>
@@ -78,7 +77,9 @@
         <Row>
             <div class="col-6 mx-auto my-auto py-2 text-center">
                 <div class="d-inline px-2">
-                    <Button size="lg" color="warning">Home</Button>
+                    <Button href="/images" size="lg" color="warning"
+                        >Images</Button
+                    >
                 </div>
                 <div class="d-inline px-2">
                     <Button size="lg" color="warning">Collections</Button>
