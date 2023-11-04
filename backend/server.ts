@@ -15,6 +15,7 @@ import Email from 'email-templates'
 import {Jwks, JwksKey} from './types'
 import { v4 as uuidv4, validate as validateUUID, parse as parseUUID} from 'uuid';
 import { warn } from 'console'
+import { wrap } from 'module'
 const jwt = require('jsonwebtoken')
 
 // Express Setup
@@ -252,15 +253,17 @@ app.post('/api/createUser', async (req: Request, res: Response) => {
 
 // logout route
 app.delete('/api/logout', async (req: Request, res: Response) => {
-
   const body = req.body
 
   // check for jwt in request
   if (!(jwt in body)){
-    return res.status(418).json( { logged_out: false, reason: "Error: no jwt provided. "})
+    return res.status(418).json({
+      logged_out: false,
+      reason: "Error: no jwt provided."
+    })
   }
 
-  const authenticated = await verify_JWT(body.jwt)
+  const authenticated: boolean = await verify_JWT(body.jwt)
 
   // if JWT is valid invalidate session under session_id
   if(!authenticated){
@@ -268,14 +271,11 @@ app.delete('/api/logout', async (req: Request, res: Response) => {
   }
 
   // if session_id is invalidated, return success
-  const payload = jwt.decode(body.jwt)
-  try{
-    await delete_session(payload.session_id)
-    return res.status(200).json({logout:true})
-  }
-  catch(err){
-    return res.status(500).json({logout:false, error:err})
-  }
+  const payload: any = jwt.decode(body.jwt);
+
+  await delete_session(payload.session_id)
+  .then(() => res.status(200).json({logout:true}))
+  .catch((err:any) => res.status(500).json({logout:false, error:err}))
 })
 
 app.post('/testSession', async (req: Request, res: Response) => {
@@ -333,7 +333,7 @@ app.get('/api/userID', async (req: Request, res: Response) => {
       return res.json({user_id: userdata.id})
 
     })
-    .catch((err) => {
+    .catch((err: any) => {
       console.log("ERROR:" + err.toString())
       // Catches database errors.
       return res.status(500).json({
@@ -404,8 +404,7 @@ app.post('/api/verifyOTP', async (req: Request, res: Response) => {
 
       // TODO fix this for prod
       // Check for expired OTP Session
-      // if (elapsed_min > 5){
-      if (!true){
+      if (elapsed_min > 5){
         // return an Error stating the OTP has expired
         return res.status(401).json({
           verified: false, token: null, reason: "OTP Expired"
@@ -432,47 +431,50 @@ app.post('/api/verifyOTP', async (req: Request, res: Response) => {
           return res.status(500).json(err)
         }
       }
-      }
-      else{
-        console.log("OTP Did Not Match")
-        return res.status(418).json({
-          verified: false, token: null, reason: "Invalid OTP"
-        })
-      }
-    })
-    .catch((err) => {
-      return res.status(400).json({session_verified: false, reason: "Session_id does not exist: ", error: err.toString()})
-    })
-  })
-
-  app.get('/.well-known/jwks.json', (res: Response) => {
-    try {
-      const modulus = process.env.RSA_KEY_N
-      const exponent = process.env.RSA_KEY_E
-      const kid = process.env.RSA_KEY_KID
-
-      if(!modulus || !exponent || !kid){
-        throw new Error('RSA key informatiion is missing')
-      }
-      const jwksKey: JwksKey = {
-        kid,
-        kty: 'RSA',
-        alg: 'RS256',
-        use: 'sig',
-        n: modulus,
-        e: exponent,
-      }
-
-      const jwks: Jwks = {
-        keys: [jwksKey],
-      }
-
-      res.json(jwks)
-    } catch (error) {
-      res.status(500).json({error: 'Internal Server Error'})
+    }
+    else{
+      console.log("OTP Did Not Match")
+      return res.status(418).json({
+        verified: false, token: null, reason: "Invalid OTP"
+      })
     }
   })
-
-  app.listen(port, () => {
-    console.log(`Running on http://locahost:${port}`)
+  .catch((err) => {
+    return res.status(400).json({
+      session_verified: false,
+      reason: "Session_id does not exist: ",
+      error: err.toString()})
   })
+})
+
+app.get('/.well-known/jwks.json', (res: Response) => {
+  try {
+    const modulus = process.env.RSA_KEY_N
+    const exponent = process.env.RSA_KEY_E
+    const kid = process.env.RSA_KEY_KID
+
+    if(!modulus || !exponent || !kid){
+      throw new Error('RSA key informatiion is missing')
+    }
+    const jwksKey: JwksKey = {
+      kid,
+      kty: 'RSA',
+      alg: 'RS256',
+      use: 'sig',
+      n: modulus,
+      e: exponent,
+    }
+
+    const jwks: Jwks = {
+      keys: [jwksKey],
+    }
+
+    res.json(jwks)
+  } catch (error) {
+    res.status(500).json({error: 'Internal Server Error'})
+  }
+})
+
+app.listen(port, () => {
+  console.log(`Running on http://locahost:${port}`)
+})
