@@ -155,34 +155,77 @@ app.get('/api', async (req: Request, res: Response) => {
 })
 
 // login route
-app.post('/api/auth', async (req: Request, res: Response) => {
+app.post('/api/login', async (req: Request, res: Response) => {
   const {body} = req;
-  let valid = await verify_JWT(JSON.parse(JSON.stringify(body.jwt)));
-  const payload = jwt.decode(body.jwt, {complete: true});
-  if(valid)
-  {
-    //check if user is banned or timed out
-    //query users table for id and if banned is true
-    const user = await User.findByPk(payload.payload.userid)
-    if (!user) {
-      return res.json({valid: false});
+  if (body.jwt) {
+    let valid = await verify_JWT(JSON.parse(JSON.stringify(body.jwt)));
+    const payload = jwt.decode(body.jwt, {complete: true});
+    if(valid)
+    {
+      //check if user is banned or timed out
+      //query users table for id and if banned is true
+      const user = await User.findByPk(payload.payload.userid)
+      if (!user) {
+        return res.json({valid: false});
+      }
+      if (user.banned) {
+        return res.json({valid: false, banned:true});
+      }
+      return res.json({valid: true, banned: false});
     }
-    if (user.banned) {
-      return res.json({valid: false, banned:true});
+    else
+    {
+      //query
+      console.log("Invalid JWT");
+      const [updateCount] = await Session.update({valid: false}, {where: {session_id: payload.payload.session_id}});
+      if (updateCount > 0) {
+
+      } else {
+        console.log("Session not invalidated");
+      }
     }
-    return res.json({valid: true, banned: false});
   }
   else
   {
-    //query
-    console.log("Invalid JWT");
-    const [updateCount] = await Session.update({valid: false}, {where: {session_id: payload.payload.session_id}});
-    if (updateCount > 0) {
-
-    } else {
-      console.log("Session not invalidated");
+    const username = body.username;
+    if (!username) {
+      return res.status(400).json({
+        valid: false,
+        reason: "Username not provided"
+      })
     }
-    return res.json({valid: false});
+
+    const user = await User.findOne({
+      attributes: ['id'],
+      where: { username: username }
+    })
+    .then((user) => {
+      if(user === null){
+        return res.status(200).json({
+          valid: false,
+          reason: "User not found"
+        })
+      }
+      const data = user.get({ plain: true })
+      
+      // create a new session for the user
+      create_session(data.id)
+      .then((session_id) => {
+        // return the session_id to the user
+        return res.status(200).json({
+          valid: true,
+          session_id: session_id
+        })
+      })
+    })
+    .catch((err) => {
+      console.log(err);
+      return res.status(500).json({
+        valid: false,
+        reason: err.toString()
+      })
+    })
+
   }
 });
 
