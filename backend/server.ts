@@ -13,7 +13,7 @@ import Email from 'email-templates'
 
 // jwt imports
 import {Jwks, JwksKey} from './types'
-import { v4 as uuidv4, validate as validateUUID, parse as parseUUID} from 'uuid';
+import { v4 as uuidv4, validate as validateUUID, parse as parseUUID} from 'uuid'
 const jwt = require('jsonwebtoken')
 
 // Express Setup
@@ -82,16 +82,16 @@ const delete_session = async (session_id: string) => {
 
 var issue_JWT = (userid: number, session_id: number, length_days: number) => {
   const token = jwt.sign({ userid: userid, session_id: session_id, role: 'user' },
-                         privateKey , { expiresIn: length_days + 'd', algorithm: "RS256" });
-  return token;
+                         privateKey , { expiresIn: length_days + 'd', algorithm: "RS256" })
+  return token
 }
 
 const verify_JWT = async (token: JSON) => {
   return await jwt.verify(token, pub, (err: Error, payload: object) => {
     if(err) {
-      return false;
+      return false
     }
-    return true;
+    return true
   })
 }
 
@@ -100,7 +100,7 @@ const create_session = async (in_user_id: number, is_remembered?: boolean) => {
 
   // Just checks for empty fields.
   if ( in_user_id == null ) {
-    var missing: string = "";
+    var missing: string = ""
     missing += (in_user_id) ? " " : "user_id "
     throw new Error("Missing Parameters:" + missing)
   }
@@ -172,35 +172,35 @@ app.get('/api', async (req: Request, res: Response) => {
 
 // login route
 app.post('/api/auth', async (req: Request, res: Response) => {
-  const {body} = req;
-  let valid = await verify_JWT(JSON.parse(JSON.stringify(body.jwt)));
-  const payload = jwt.decode(body.jwt, {complete: true});
+  const {body} = req
+  let valid = await verify_JWT(JSON.parse(JSON.stringify(body.jwt)))
+  const payload = jwt.decode(body.jwt, {complete: true})
   if(valid)
     {
       //check if user is banned or timed out
       //query users table for id and if banned is true
       const user = await User.findByPk(payload.payload.userid)
   if (!user) {
-    return res.json({valid: false});
+    return res.json({valid: false})
   }
   if (user.banned) {
-    return res.json({valid: false, banned:true});
+    return res.json({valid: false, banned:true})
   }
-  return res.json({valid: true, banned: false});
+  return res.json({valid: true, banned: false})
     }
     else
       {
         //query
-        console.log("Invalid JWT");
-        const [updateCount] = await Session.update({valid: false}, {where: {session_id: payload.payload.session_id}});
+        console.log("Invalid JWT")
+        const [updateCount] = await Session.update({valid: false}, {where: {session_id: payload.payload.session_id}})
         if (updateCount > 0) {
 
         } else {
-          console.log("Session not invalidated");
+          console.log("Session not invalidated")
         }
-        return res.json({valid: false});
+        return res.json({valid: false})
       }
-});
+})
 
 app.post('/api/createUser', async (req: Request, res: Response) => {
 
@@ -269,7 +269,7 @@ app.delete('/api/logout', async (req: Request, res: Response) => {
   }
 
   // if session_id is invalidated, return success
-  const payload: any = jwt.decode(body.jwt);
+  const payload: any = jwt.decode(body.jwt)
 
 await delete_session(payload.session_id)
 .then(() => res.status(200).json({logout:true}))
@@ -295,9 +295,9 @@ app.post('/testSession', async (req: Request, res: Response) => {
 })
 
 app.post('/testJWT', async (req: Request, res: Response) => {
-  const {body} = req;
-  let token = issue_JWT(body.userid, body.session_id, body.length_days);
-  return res.json({jwt: token});
+  const {body} = req
+  let token = issue_JWT(body.userid, body.session_id, body.length_days)
+  return res.json({jwt: token})
 })
 
 app.get('/api/userID', async (req: Request, res: Response) => {
@@ -357,7 +357,7 @@ app.post('/api/verifyOTP', async (req: Request, res: Response) => {
   // takes in OTP and session_id
   const {body} = req
   if (!body.OTP || !body.session_id) {
-    var missing: string = "";
+    var missing: string = ""
     missing += (body.OTP) ? " " : "OTP, "
     missing += (body.session_id) ? " " : "session_id "
     return res.status(418).json({session_verified: false, reason: "Missing:" + missing})
