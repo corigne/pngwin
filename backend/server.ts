@@ -6,6 +6,7 @@ import * as dotenv from 'dotenv'
 import { Sequelize } from 'sequelize-typescript'
 import User from './models/User.model'
 import Session from './models/Session.model'
+import Timeout from './models/Timeout.model'
 
 // nodemailer and email-templates stuff
 import { createTransport } from 'nodemailer'
@@ -60,8 +61,16 @@ const pub = process.env.RSA_PUB_KEY
 // Helper Functions
 // Internal to API
 
-var issue_JWT = (userid: number, session_id: number, length_days: number) => {
-    const token = jwt.sign({ userid: userid, session_id: session_id, role: 'user' },
+const issue_JWT =  async (userid: number, session_id: number, length_days: number) => {
+    const user = await User.findOne({
+      attributes: ['role'],
+      where : {id: userid}
+    })
+    if (!user) {
+      throw new Error("User not found");
+    }
+    const data = user.get({ plain: true });
+    const token = jwt.sign({ userid: userid, session_id: session_id, role: data.role },
     privateKey , { expiresIn: length_days + 'd', algorithm: "RS256" });
     return token;
 }
@@ -166,12 +175,19 @@ app.post('/api/login', async (req: Request, res: Response) => {
       //query users table for id and if banned is true
       const user = await User.findByPk(payload.payload.userid)
       if (!user) {
-        return res.json({valid: false});
+        return res.json({valid: false, reason: "User not found"});
       }
       if (user.banned) {
-        return res.json({valid: false, banned:true});
+        return res.json({valid: false, reason: "User is banned"});
       }
-      return res.json({valid: true, banned: false});
+
+      //query timeout table for id
+      const timeouts = await Timeout.findAll({
+        where: {
+          user_id: payload.payload.userid
+        }
+      });
+      return res.json({valid: true, reason: "Valid JWT"});
     }
     else
     {
@@ -209,7 +225,7 @@ app.post('/api/login', async (req: Request, res: Response) => {
       const data = user.get({ plain: true })
       
       // create a new session for the user
-      create_session(data.id)
+      create_session(data.id,body.is_remembered)
       .then((session_id) => {
         // return the session_id to the user
         return res.status(200).json({
@@ -308,7 +324,7 @@ app.post('/testSession', async (req: Request, res: Response) => {
 
 app.post('/testJWT', async (req: Request, res: Response) => {
   const {body} = req;
-  let token = issue_JWT(body.userid, body.session_id, body.length_days);
+  let token =  await issue_JWT(body.userid, body.session_id, body.length_days);
   return res.json({jwt: token});
 })
 
