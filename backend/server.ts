@@ -13,7 +13,7 @@ import Email from 'email-templates'
 
 // jwt imports
 import {Jwks, JwksKey} from './types'
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4, validate as validateUUID, parse as parseUUID} from 'uuid';
 import { warn } from 'console'
 const jwt = require('jsonwebtoken')
 
@@ -61,23 +61,39 @@ const pub = process.env.RSA_PUB_KEY
 // Helper Functions
 // Internal to API
 
-var issue_JWT = (userid: number, session_id: number, length_days: number) => {
-    const token = jwt.sign({ userid: userid, session_id: session_id, role: 'user' },
-    privateKey , { expiresIn: length_days + 'd', algorithm: "RS256" });
-    return token;
+const delete_session = async (session_id: string) => {
+
+  if ( !validateUUID(session_id) ){
+    throw new Error("Error: Session id is not valid uuid.")
+  }
+
+  const session = await Session.findByPk(session_id)
+
+  if (!session) {
+    throw new Error("Error: Session id not found.")
+  }
+
+  try{
+    await session.destroy()
+  }
+  catch(err){
+    throw new Error(`Database error, session could not be deleted... ${err}`)
+  }
 }
 
- var verify_JWT = (token: JSON): Promise<boolean> => {
-  return new Promise((resolve) => {
-      jwt.verify(token, pub, (err: any) => {
-          if(err) {
-              console.log(err);
-              resolve(false);
-          } else {
-              resolve(true);
-          }
-      });
-  });
+var issue_JWT = (userid: number, session_id: number, length_days: number) => {
+  const token = jwt.sign({ userid: userid, session_id: session_id, role: 'user' },
+                         privateKey , { expiresIn: length_days + 'd', algorithm: "RS256" });
+  return token;
+}
+
+const verify_JWT = async (token: JSON) => {
+  return await jwt.verify(token, pub, (err: Error, payload: object) => {
+    if(err) {
+      return false;
+    }
+    return true;
+  })
 }
 
 // creates a new user session to be validated in the database
@@ -161,30 +177,30 @@ app.post('/api/auth', async (req: Request, res: Response) => {
   let valid = await verify_JWT(JSON.parse(JSON.stringify(body.jwt)));
   const payload = jwt.decode(body.jwt, {complete: true});
   if(valid)
-  {
-    //check if user is banned or timed out
-    //query users table for id and if banned is true
-    const user = await User.findByPk(payload.payload.userid)
-    if (!user) {
-      return res.json({valid: false});
-    }
-    if (user.banned) {
-      return res.json({valid: false, banned:true});
-    }
-    return res.json({valid: true, banned: false});
-  }
-  else
-  {
-    //query
-    console.log("Invalid JWT");
-    const [updateCount] = await Session.update({valid: false}, {where: {session_id: payload.payload.session_id}});
-    if (updateCount > 0) {
-
-    } else {
-      console.log("Session not invalidated");
-    }
+    {
+      //check if user is banned or timed out
+      //query users table for id and if banned is true
+      const user = await User.findByPk(payload.payload.userid)
+  if (!user) {
     return res.json({valid: false});
   }
+  if (user.banned) {
+    return res.json({valid: false, banned:true});
+  }
+  return res.json({valid: true, banned: false});
+    }
+    else
+      {
+        //query
+        console.log("Invalid JWT");
+        const [updateCount] = await Session.update({valid: false}, {where: {session_id: payload.payload.session_id}});
+        if (updateCount > 0) {
+
+        } else {
+          console.log("Session not invalidated");
+        }
+        return res.json({valid: false});
+      }
 });
 
 app.post('/api/createUser', async (req: Request, res: Response) => {
@@ -235,15 +251,31 @@ app.post('/api/createUser', async (req: Request, res: Response) => {
 })
 
 // logout route
-app.post('/api/logout', async (req: Request, res: Response) => {
+app.delete('/api/logout', async (req: Request, res: Response) => {
 
-  // needs JWT verification
+  const body = req.body
+
+  // check for jwt in request
+  if (!(jwt in body)){
+    return res.status(418).json( { logged_out: false, reason: "Error: no jwt provided. "})
+  }
+
+  const authenticated = await verify_JWT(body.jwt)
 
   // if JWT is valid invalidate session under session_id
+  if(!authenticated){
+    return res.status(401).json({logout:false, reason:"Invalid JWT"})
+  }
 
   // if session_id is invalidated, return success
-
-  // else return failure
+  const payload = jwt.decode(body.jwt)
+  try{
+    await delete_session(payload.session_id)
+    return res.status(200).json({logout:true})
+  }
+  catch(err){
+    return res.status(500).json({logout:false, error:err})
+  }
 })
 
 app.post('/testSession', async (req: Request, res: Response) => {
@@ -369,6 +401,8 @@ app.post('/api/verifyOTP', async (req: Request, res: Response) => {
 
       const elapsed_min: number = (Date.now() - created.getTime()) /1000/60
       console.log(`Elapsed time in min: ${elapsed_min}`)
+
+      // TODO fix this for prod
       // Check for expired OTP Session
       // if (elapsed_min > 5){
       if (!true){
@@ -411,34 +445,34 @@ app.post('/api/verifyOTP', async (req: Request, res: Response) => {
     })
   })
 
-app.get('/.well-known/jwks.json', (res: Response) => {
-  try {
-    const modulus = process.env.RSA_KEY_N
-    const exponent = process.env.RSA_KEY_E
-    const kid = process.env.RSA_KEY_KID
+  app.get('/.well-known/jwks.json', (res: Response) => {
+    try {
+      const modulus = process.env.RSA_KEY_N
+      const exponent = process.env.RSA_KEY_E
+      const kid = process.env.RSA_KEY_KID
 
-    if(!modulus || !exponent || !kid){
-      throw new Error('RSA key informatiion is missing')
+      if(!modulus || !exponent || !kid){
+        throw new Error('RSA key informatiion is missing')
+      }
+      const jwksKey: JwksKey = {
+        kid,
+        kty: 'RSA',
+        alg: 'RS256',
+        use: 'sig',
+        n: modulus,
+        e: exponent,
+      }
+
+      const jwks: Jwks = {
+        keys: [jwksKey],
+      }
+
+      res.json(jwks)
+    } catch (error) {
+      res.status(500).json({error: 'Internal Server Error'})
     }
-    const jwksKey: JwksKey = {
-      kid,
-      kty: 'RSA',
-      alg: 'RS256',
-      use: 'sig',
-      n: modulus,
-      e: exponent,
-    }
+  })
 
-    const jwks: Jwks = {
-      keys: [jwksKey],
-    }
-
-    res.json(jwks)
-  } catch (error) {
-    res.status(500).json({error: 'Internal Server Error'})
-  }
-})
-
-app.listen(port, () => {
-  console.log(`Running on http://locahost:${port}`)
-})
+  app.listen(port, () => {
+    console.log(`Running on http://locahost:${port}`)
+  })
