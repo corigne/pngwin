@@ -88,6 +88,54 @@ const issue_JWT =  async (userid: number, session_id: number, length_days: numbe
   });
 }
 
+const check_user_ban = async (username: string,) => {
+  const user = await User.findOne({
+    attributes: ['id','banned'],
+    where: { username: username }
+  })
+  if (!user) {
+    throw new Error("User not found");
+  }
+  const data = user.get({ plain: true });
+  return data.banned ? true : false;
+}
+
+const check_user_timeout = async (username: string,) => {
+  const user = await User.findOne({
+    attributes: ['id','banned'],
+    where: { username: username}
+  })
+  if (!user) {
+    throw new Error("User not found");
+  }
+  const data = user.get({ plain: true })
+  //query timeout table for id
+  const timeouts = await Timeout.findAll({
+    attributes: ['start_on', 'length_min'],
+    where: { user_id: data.id}
+  });
+  //for each timeout, check if it is expired
+  let most_recent = new Date(0);
+  let most_recent_length = 0;
+  timeouts.forEach(timeout => {
+    if(timeout.dataValues.start_on > most_recent) {
+      most_recent = timeout.dataValues.start_on;
+      most_recent_length = timeout.dataValues.length_min;
+    }
+  });
+  //convert to unix time
+  let most_recent_unix = most_recent.getTime();
+  //add length in minutes
+  most_recent_unix += most_recent_length * 60000;
+  //compare to current time
+  if(most_recent_unix > Date.now()) {
+    return true;
+  } else {  
+    return false;
+  }
+
+}
+
 // creates a new user session to be validated in the database
 const create_session = async (in_user_id: number, is_remembered?: boolean) => {
 
@@ -171,22 +219,55 @@ app.post('/api/login', async (req: Request, res: Response) => {
     const payload = jwt.decode(body.jwt, {complete: true});
     if(valid)
     {
-      //check if user is banned or timed out
-      //query users table for id and if banned is true
-      const user = await User.findByPk(payload.payload.userid)
-      if (!user) {
-        return res.json({valid: false, reason: "User not found"});
+      /*const user = await User.findOne({
+        attributes: ['id','banned'],
+        where: { username: body.username }
+      })
+      if(user === null){
+        return res.status(200).json({
+          valid: false,
+          reason: "User not found"
+        })
       }
-      if (user.banned) {
+      const data = user.get({ plain: true })
+      if (data.banned) {
         return res.json({valid: false, reason: "User is banned"});
       }
-
       //query timeout table for id
       const timeouts = await Timeout.findAll({
-        where: {
-          user_id: payload.payload.userid
+        attributes: ['start_on', 'length_min'],
+        where: { user_id: data.id}
+      });
+      //for each timeout, check if it is expired
+      let most_recent = new Date(0);
+      let most_recent_length = 0;
+      timeouts.forEach(timeout => {
+        if(timeout.dataValues.start_on > most_recent) {
+          most_recent = timeout.dataValues.start_on;
+          most_recent_length = timeout.dataValues.length_min;
         }
       });
+      //convert to unix time
+      let most_recent_unix = most_recent.getTime();
+      //add length in minutes
+      most_recent_unix += most_recent_length * 60000;
+      //compare to current time
+
+      if(most_recent_unix > Date.now()) {
+        return res.status(200).json({valid: false, reason: "User is timed out"});
+      }
+      return res.status(200).json({valid: true, reason: "Valid JWT"});*/
+      if(!body.username) {
+        return res.status(418).json({valid: false, reason: "Username not provided"});
+      }
+      let ban =  await check_user_ban(body.username);
+      let timeout = await check_user_timeout(body.username);
+      if(ban) {
+        return res.json({valid: false, reason: "User is banned"});
+      }
+      if(timeout) {
+        return res.json({valid: false, reason: "User is timed out"});
+      }
       return res.json({valid: true, reason: "Valid JWT"});
     }
     else
@@ -195,20 +276,29 @@ app.post('/api/login', async (req: Request, res: Response) => {
       console.log("Invalid JWT");
       const [updateCount] = await Session.update({valid: false}, {where: {session_id: payload.payload.session_id}});
       if (updateCount > 0) {
-
+        console.log("Session invalidated");
       } else {
         console.log("Session not invalidated");
       }
+      return res.json({valid: false, reason: "Invalid JWT"});
     }
   }
   else
   {
     const username = body.username;
     if (!username) {
-      return res.status(400).json({
+      return res.status(418).json({
         valid: false,
         reason: "Username not provided"
       })
+    }
+    let ban =  await check_user_ban(username);
+    let timeout = await check_user_timeout(username);
+    if(ban) {
+      return res.json({valid: false, reason: "User is banned"});
+    }
+    if(timeout) {
+      return res.json({valid: false, reason: "User is timed out"});
     }
 
     const user = await User.findOne({
@@ -320,6 +410,47 @@ app.post('/testSession', async (req: Request, res: Response) => {
     res.status(400).json({session_created: false, reason: err.toString()})
   })
 
+})
+
+app.post('/testTimeout', async (req: Request, res: Response) => {
+  const {body} = req
+  if(!body.user_id){
+    return res.status(400).json({timeout_created: false, reason: "Missing user_id."})
+  }
+  if(!body.length_min){
+    return res.status(400).json({timeout_created: false, reason: "Missing length."})
+  }
+  if(!body.mod_id){
+    return res.status(400).json({timeout_created: false, reason: "Missing mod_id."})
+  }
+  if(!body.reason){
+    return res.status(400).json({timeout_created: false, reason: "Missing reason."})
+  }
+
+  const user_id = body.user_id
+  const length = body.length_min
+  const mod_id = body.mod_id
+  const reason = body.reason
+
+  const timeout = new Timeout({
+    user_id: user_id,
+    start_on: new Date(),
+    length_min: length,
+    mod_id: mod_id,
+    reason: reason
+  })
+
+  if ( !(timeout instanceof Timeout) )
+    return res.status(400).json({timeout_created: false, reason: "Invalid timeout."})
+
+  try{
+    await timeout.save()
+  }
+  catch(err: any){
+    return res.status(500).json({timeout_created: false, reason: "Database error: " + err.toString()})
+  }
+
+  return res.status(200).json({timeout_created: true, "new_timeout": timeout})
 })
 
 app.post('/testJWT', async (req: Request, res: Response) => {
