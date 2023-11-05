@@ -219,44 +219,6 @@ app.post('/api/login', async (req: Request, res: Response) => {
     const payload = jwt.decode(body.jwt, {complete: true});
     if(valid)
     {
-      /*const user = await User.findOne({
-        attributes: ['id','banned'],
-        where: { username: body.username }
-      })
-      if(user === null){
-        return res.status(200).json({
-          valid: false,
-          reason: "User not found"
-        })
-      }
-      const data = user.get({ plain: true })
-      if (data.banned) {
-        return res.json({valid: false, reason: "User is banned"});
-      }
-      //query timeout table for id
-      const timeouts = await Timeout.findAll({
-        attributes: ['start_on', 'length_min'],
-        where: { user_id: data.id}
-      });
-      //for each timeout, check if it is expired
-      let most_recent = new Date(0);
-      let most_recent_length = 0;
-      timeouts.forEach(timeout => {
-        if(timeout.dataValues.start_on > most_recent) {
-          most_recent = timeout.dataValues.start_on;
-          most_recent_length = timeout.dataValues.length_min;
-        }
-      });
-      //convert to unix time
-      let most_recent_unix = most_recent.getTime();
-      //add length in minutes
-      most_recent_unix += most_recent_length * 60000;
-      //compare to current time
-
-      if(most_recent_unix > Date.now()) {
-        return res.status(200).json({valid: false, reason: "User is timed out"});
-      }
-      return res.status(200).json({valid: true, reason: "Valid JWT"});*/
       if(!body.username) {
         return res.status(418).json({valid: false, reason: "Username not provided"});
       }
