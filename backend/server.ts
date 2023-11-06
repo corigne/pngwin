@@ -365,7 +365,7 @@ app.delete('/api/logout', async (req: Request, res: Response) => {
   const body = req.body
 
   // check for jwt in request
-  if (!(jwt in body)){
+  if (!body.jwt){
     return res.status(418).json({
       logged_out: false,
       reason: "Error: no jwt provided."
@@ -448,7 +448,7 @@ app.post('/testTimeout', async (req: Request, res: Response) => {
 
 app.post('/testJWT', async (req: Request, res: Response) => {
   const {body} = req
-  let token = issue_JWT(body.userid, body.session_id, body.length_days)
+  let token = await issue_JWT(body.userid, body.session_id, body.length_days)
   return res.json({jwt: token})
 })
 
