@@ -14,7 +14,7 @@ import Email from 'email-templates'
 
 // jwt imports
 import {Jwks, JwksKey} from './types'
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4, validate as validateUUID, parse as parseUUID} from 'uuid'
 const jwt = require('jsonwebtoken')
 
 // Express Setup
@@ -61,31 +61,47 @@ const pub = process.env.RSA_PUB_KEY
 // Helper Functions
 // Internal to API
 
-const issue_JWT =  async (userid: number, session_id: number, length_days: number) => {
-    const user = await User.findOne({
-      attributes: ['role'],
-      where : {id: userid}
-    })
-    if (!user) {
-      throw new Error("User not found");
-    }
-    const data = user.get({ plain: true });
-    const token = jwt.sign({ userid: userid, session_id: session_id, role: data.role },
-    privateKey , { expiresIn: length_days + 'd', algorithm: "RS256" });
-    return token;
+const delete_session = async (session_id: string) => {
+
+  if ( !validateUUID(session_id) ){
+    throw new Error("Error: Session id is not valid uuid.")
+  }
+
+  const session = await Session.findByPk(session_id)
+
+  if (!session) {
+    throw new Error("Error: Session id not found.")
+  }
+
+  try{
+    await session.destroy()
+  }
+  catch(err){
+    throw new Error(`Database error, session could not be deleted... ${err}`)
+  }
 }
 
- var verify_JWT = (token: JSON): Promise<boolean> => {
-  return new Promise((resolve) => {
-      jwt.verify(token, pub, (err: any) => {
-          if(err) {
-              console.log(err);
-              resolve(false);
-          } else {
-              resolve(true);
-          }
-      });
-  });
+const issue_JWT =  async (userid: number, session_id: number, length_days: number) => {
+  const user = await User.findOne({
+    attributes: ['role'],
+    where : {id: userid}
+  })
+  if (!user) {
+    throw new Error("User not found");
+  }
+  const data = user.get({ plain: true });
+  const token = jwt.sign({ userid: userid, session_id: session_id, role: data.role },
+  privateKey , { expiresIn: length_days + 'd', algorithm: "RS256" });
+  return token;
+}
+
+const verify_JWT = async (token: JSON) => {
+  return await jwt.verify(token, pub, (err: Error, payload: object) => {
+    if(err) {
+      return false
+    }
+    return true
+  })
 }
 
 const check_user_ban = async (username: string,) => {
@@ -102,7 +118,7 @@ const check_user_ban = async (username: string,) => {
 
 const check_user_timeout = async (username: string,) => {
   const user = await User.findOne({
-    attributes: ['id','banned'],
+    attributes: ['id'],
     where: { username: username}
   })
   if (!user) {
@@ -141,7 +157,7 @@ const create_session = async (in_user_id: number, is_remembered?: boolean) => {
 
   // Just checks for empty fields.
   if ( in_user_id == null ) {
-    var missing: string = "";
+    var missing: string = ""
     missing += (in_user_id) ? " " : "user_id "
     throw new Error("Missing Parameters:" + missing)
   }
@@ -345,15 +361,30 @@ app.post('/api/createUser', async (req: Request, res: Response) => {
 })
 
 // logout route
-app.post('/api/logout', async (req: Request, res: Response) => {
+app.delete('/api/logout', async (req: Request, res: Response) => {
+  const body = req.body
 
-  // needs JWT verification
+  // check for jwt in request
+  if (!(jwt in body)){
+    return res.status(418).json({
+      logged_out: false,
+      reason: "Error: no jwt provided."
+    })
+  }
+
+  const authenticated: boolean = await verify_JWT(body.jwt)
 
   // if JWT is valid invalidate session under session_id
+  if(!authenticated){
+    return res.status(401).json({logout:false, reason:"Invalid JWT"})
+  }
 
   // if session_id is invalidated, return success
+  const payload: any = jwt.decode(body.jwt)
 
-  // else return failure
+  await delete_session(payload.session_id)
+  .then(() => res.status(200).json({logout:true}))
+  .catch((err:any) => res.status(500).json({logout:false, error:err}))
 })
 
 app.post('/testSession', async (req: Request, res: Response) => {
@@ -416,9 +447,60 @@ app.post('/testTimeout', async (req: Request, res: Response) => {
 })
 
 app.post('/testJWT', async (req: Request, res: Response) => {
-  const {body} = req;
-  let token =  await issue_JWT(body.userid, body.session_id, body.length_days);
-  return res.json({jwt: token});
+  const {body} = req
+  let token = issue_JWT(body.userid, body.session_id, body.length_days)
+  return res.json({jwt: token})
+})
+
+app.get('/api/userID', async (req: Request, res: Response) => {
+  if("username" in req.query ){
+
+    const username: string | undefined = req.query.username?.toString()
+
+    if(!username){
+      return res.status(418).json({
+        user_exists: false,
+        username: null,
+        error: `Error: Field "username" is not defined in the query.`
+      })
+    }
+
+    const user = await User.findOne({
+      attributes: ['id'],
+      where: { username: username }
+    })
+    .then((user) => {
+      if(user === null){
+        // Catches user DNE
+        return res.status(200).json({
+          user_exists: false,
+          username: null,
+          error: `User with username '${username}' does not exist.`
+        })
+      }
+
+      const userdata = user.get({plain:true})
+      return res.json({user_id: userdata.id})
+
+    })
+    .catch((err: any) => {
+      console.log("ERROR:" + err.toString())
+      // Catches database errors.
+      return res.status(500).json({
+        user_exists: null,
+        username: null,
+        error: err.toString()
+      })
+    })
+
+  }
+  else{
+    return res.status(418).json({
+      user_exists: false,
+      username: null,
+      error: `No username provided.`
+    })
+  }
 })
 
 // verifies login session for a user
@@ -427,7 +509,7 @@ app.post('/api/verifyOTP', async (req: Request, res: Response) => {
   // takes in OTP and session_id
   const {body} = req
   if (!body.OTP || !body.session_id) {
-    var missing: string = "";
+    var missing: string = ""
     missing += (body.OTP) ? " " : "OTP, "
     missing += (body.session_id) ? " " : "session_id "
     return res.status(418).json({session_verified: false, reason: "Missing:" + missing})
@@ -469,9 +551,10 @@ app.post('/api/verifyOTP', async (req: Request, res: Response) => {
 
       const elapsed_min: number = (Date.now() - created.getTime()) /1000/60
       console.log(`Elapsed time in min: ${elapsed_min}`)
+
+      // TODO fix this for prod
       // Check for expired OTP Session
-      // if (elapsed_min > 5){
-      if (!true){
+      if (elapsed_min > 5){
         // return an Error stating the OTP has expired
         return res.status(401).json({
           verified: false, token: null, reason: "OTP Expired"
@@ -498,18 +581,21 @@ app.post('/api/verifyOTP', async (req: Request, res: Response) => {
           return res.status(500).json(err)
         }
       }
-      }
-      else{
-        console.log("OTP Did Not Match")
-        return res.status(418).json({
-          verified: false, token: null, reason: "Invalid OTP"
-        })
-      }
-    })
-    .catch((err) => {
-      return res.status(400).json({session_verified: false, reason: "Session_id does not exist: ", error: err.toString()})
-    })
+    }
+    else{
+      console.log("OTP Did Not Match")
+      return res.status(418).json({
+        verified: false, token: null, reason: "Invalid OTP"
+      })
+    }
   })
+  .catch((err) => {
+    return res.status(400).json({
+      session_verified: false,
+      reason: "Session_id does not exist: ",
+      error: err.toString()})
+  })
+})
 
 app.get('/.well-known/jwks.json', (res: Response) => {
   try {
