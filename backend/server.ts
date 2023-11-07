@@ -61,49 +61,6 @@ const pub = process.env.RSA_PUB_KEY
 // Helper Functions
 // Internal to API
 
-const delete_session = async (session_id: string) => {
-
-  if ( !validateUUID(session_id) ){
-    throw new Error("Error: Session id is not valid uuid.")
-  }
-
-  const session = await Session.findByPk(session_id)
-
-  if (!session) {
-    throw new Error("Error: Session id not found.")
-  }
-
-  try{
-    await session.destroy()
-  }
-  catch(err){
-    throw new Error(`Database error, session could not be deleted... ${err}`)
-  }
-}
-
-const issue_JWT =  async (userid: number, session_id: number, length_days: number) => {
-  const user = await User.findOne({
-    attributes: ['role'],
-    where : {id: userid}
-  })
-  if (!user) {
-    throw new Error("User not found");
-  }
-  const data = user.get({ plain: true });
-  const token = jwt.sign({ userid: userid, session_id: session_id, role: data.role },
-  privateKey , { expiresIn: length_days + 'd', algorithm: "RS256" });
-  return token;
-}
-
-const verify_JWT = async (token: JSON) => {
-  return await jwt.verify(token, pub, (err: Error, payload: object) => {
-    if(err) {
-      return false
-    }
-    return true
-  })
-}
-
 const check_user_ban = async (username: string,) => {
   const user = await User.findOne({
     attributes: ['id','banned'],
@@ -146,7 +103,7 @@ const check_user_timeout = async (username: string,) => {
   //compare to current time
   if(most_recent_unix > Date.now()) {
     return true;
-  } else {  
+  } else {
     return false;
   }
 
@@ -182,7 +139,7 @@ const create_session = async (in_user_id: number, is_remembered?: boolean) => {
     valid: false,
     pending: true,
     otp: newOTP,
-    remembered: is_remembered,
+    remembered: is_remembered ?? false,
     session_id: new_session_id,
   })
 
@@ -216,6 +173,49 @@ const create_session = async (in_user_id: number, is_remembered?: boolean) => {
   }
   // only runs if email sent successfully
   return new_session_id
+}
+
+const delete_session = async (session_id: string) => {
+
+  if ( !validateUUID(session_id) ){
+    throw new Error("Error: Session id is not valid uuid.")
+  }
+
+  const session = await Session.findByPk(session_id)
+
+  if (!session) {
+    throw new Error("Error: Session id not found.")
+  }
+
+  try{
+    await session.destroy()
+  }
+  catch(err){
+    throw new Error(`Database error, session could not be deleted... ${err}`)
+  }
+}
+
+const issue_JWT =  async (userid: number, session_id: string, length_days: number) => {
+  const user = await User.findOne({
+    attributes: ['role'],
+    where : {id: userid}
+  })
+  if (!user) {
+    throw new Error("User not found");
+  }
+  const data = user.get({ plain: true });
+  const token = jwt.sign({ userid: userid, session_id: session_id, role: data.role },
+  privateKey , { expiresIn: length_days + 'd', algorithm: "RS256" });
+  return token;
+}
+
+const verify_JWT = async (token: JSON) => {
+  return await jwt.verify(token, pub, (err: Error, payload: object) => {
+    if(err) {
+      return false
+    }
+    return true
+  })
 }
 
 /////////////////////////////////
@@ -291,7 +291,7 @@ app.post('/api/login', async (req: Request, res: Response) => {
         })
       }
       const data = user.get({ plain: true })
-      
+
       // create a new session for the user
       create_session(data.id,body.is_remembered)
       .then((session_id) => {
@@ -395,7 +395,7 @@ app.post('/testSession', async (req: Request, res: Response) => {
     return res.status(400).json({session_created: false, reason: "Missing user_id."})
   }
 
-  await create_session(body.user_id)
+  await create_session(body.user_id, body?.remembered)
   .then((session_id) => {
     res.status(200).json({session_created: true, session_id: session_id})
   })
@@ -506,95 +506,102 @@ app.get('/api/userID', async (req: Request, res: Response) => {
 // verifies login session for a user
 // a new login attempt will be required for expired OTP
 app.post('/api/verifyOTP', async (req: Request, res: Response) => {
-  // takes in OTP and session_id
+
   const {body} = req
+
   if (!body.OTP || !body.session_id) {
     var missing: string = ""
     missing += (body.OTP) ? " " : "OTP, "
     missing += (body.session_id) ? " " : "session_id "
-    return res.status(418).json({session_verified: false, reason: "Missing:" + missing})
+    return res.status(418).json({
+      session_verified: false,
+      reason: "Missing:" + missing
+    })
   }
+
   const OTP = body.OTP
   const session_id = body.session_id
-
-  // validates OTP with session_id
-  await Session.findOne({
+  const session = await Session.findOne({
     where:{
       session_id: session_id
     }
   })
-  .then((session) => {
 
-    if (!session){
-      return res.status(400).json({
-        verified: false,
-        token: null,
-        reason: "Session not found."
-      })
-    }
+  if (!session){
+    return res.status(400).json({
+      verified: false,
+      token: null,
+      reason: "Session not found."
+    })
+  }
 
-    // TODO DELETEME
-    console.log(session)
+  if(session?.dataValues.pending === false){
+    return res.status(401).json({
+      verified: false,
+      token: null,
+      reason: "Session is already verified or expired."
+    })
+  }
 
-    if(session?.dataValues.pending === false){
+  if(OTP === session?.dataValues.otp){
+    console.log("OTP Matched")
+
+    var created: Date = new Date(session?.dataValues.created_on.toString())
+
+    const elapsed_min: number = (Date.now() - created.getTime()) /1000/60
+    console.log(`Elapsed time in min: ${elapsed_min}`)
+
+    // Check for expired OTP Session
+    if (elapsed_min > 5){
+      // return an Error stating the OTP has expired
       return res.status(401).json({
-        verified: false,
-        token: null,
-        reason: "Session is already verified or expired."
+        verified: false, token: null, reason: "OTP Expired"
       })
     }
 
-    if(OTP === session?.dataValues.otp){
-      console.log("OTP Matched")
+    else{
+      // generate the jwt and store it in the session
+      const jwt_result: string|Error = await issue_JWT(
+          session.dataValues.user_id,
+          session.dataValues.session_id,
+          (session.dataValues.remembered) ? 30 : 1
+        )
 
-      var created: Date = new Date(session?.dataValues.created_on.toString())
-
-      const elapsed_min: number = (Date.now() - created.getTime()) /1000/60
-      console.log(`Elapsed time in min: ${elapsed_min}`)
-
-      // TODO fix this for prod
-      // Check for expired OTP Session
-      if (elapsed_min > 5){
-        // return an Error stating the OTP has expired
-        return res.status(401).json({
-          verified: false, token: null, reason: "OTP Expired"
+      if(jwt_result instanceof Error){
+        return res.status(500).json({
+          verified: false,
+          token: null,
+          reason: "Server Issue JWT Error: ",
+          error: jwt_result
         })
       }
 
-      else{
-        // validate the session
-        // generate the jwt and store it in the session
-        try{
-          session.set({
-            pending : false,
-            valid : true,
-            token : JSON.parse('{ "test": "placeholder" }')
-          })
-          session.save()
-          .then((result) => {
-            console.log(result)
-            return res.status(200).json(result)
-          })
-        }
-        catch(err: any){
-          console.log("Database Error:" + err.toString())
-          return res.status(500).json(err)
-        }
+      console.log(jwt_result)
+
+      try{
+        session.set({
+          pending : false,
+          valid : true,
+          token : jwt_result,
+        })
+        session.save()
+        .then((result) => {
+          console.log(result)
+          return res.status(200).json(result)
+        })
+      }
+      catch(err: any){
+        console.log("Database Error:" + err.toString())
+        return res.status(500).json(err)
       }
     }
-    else{
-      console.log("OTP Did Not Match")
-      return res.status(418).json({
-        verified: false, token: null, reason: "Invalid OTP"
-      })
-    }
-  })
-  .catch((err) => {
-    return res.status(400).json({
-      session_verified: false,
-      reason: "Session_id does not exist: ",
-      error: err.toString()})
-  })
+  }
+  else{
+    console.log("OTP Did Not Match")
+    return res.status(418).json({
+      verified: false, token: null, reason: "Invalid OTP"
+    })
+  }
 })
 
 app.get('/.well-known/jwks.json', (res: Response) => {
