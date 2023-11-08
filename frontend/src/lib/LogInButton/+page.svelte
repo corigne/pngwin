@@ -1,5 +1,5 @@
 <script>
-    import SignUpModal from "$lib/SignUpModal/+page.svelte";
+    import SignUpModal from "$lib/VerifyModal/+page.svelte";
     import {
         Modal,
         ModalBody,
