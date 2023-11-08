@@ -16,7 +16,7 @@ export default class Timeout extends Model{
 
   @AllowNull(false)
   @Column(DataType.BIGINT)
-  public length: bigint
+  public length_min: bigint
 
   @AllowNull(false)
   @Column(DataType.BIGINT)
