@@ -1,5 +1,6 @@
 // express imports
 import express, { Request, Response} from 'express'
+import cors from 'cors'
 import * as dotenv from 'dotenv'
 
 // sequelize imports for postgresql
@@ -22,6 +23,7 @@ const app = express()
 const port = 3000
 dotenv.config()
 app.use(express.json())
+app.use(cors())
 
 // Nodemailer Transport Setup
 var transporter = createTransport({
