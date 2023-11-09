@@ -1,5 +1,6 @@
 // express imports
 import express, { Request, Response} from 'express'
+import cors from 'cors'
 import * as dotenv from 'dotenv'
 
 // sequelize imports for postgresql
@@ -22,6 +23,7 @@ const app = express()
 const port = 3000
 dotenv.config()
 app.use(express.json())
+app.use(cors())
 
 // Nodemailer Transport Setup
 var transporter = createTransport({
@@ -227,91 +229,6 @@ app.get('/api', async (req: Request, res: Response) => {
   return res.json({"pong": date})
 })
 
-// login route
-app.post('/api/login', async (req: Request, res: Response) => {
-  const {body} = req;
-  if (body.jwt) {
-    let valid = await verify_JWT(JSON.parse(JSON.stringify(body.jwt)));
-    const payload = jwt.decode(body.jwt, {complete: true});
-    if(valid)
-    {
-      if(!body.username) {
-        return res.status(418).json({valid: false, reason: "Username not provided"});
-      }
-      let ban =  await check_user_ban(body.username);
-      let timeout = await check_user_timeout(body.username);
-      if(ban) {
-        return res.json({valid: false, reason: "User is banned"});
-      }
-      if(timeout) {
-        return res.json({valid: false, reason: "User is timed out"});
-      }
-      return res.json({valid: true, reason: "Valid JWT"});
-    }
-    else
-    {
-      //query
-      console.log("Invalid JWT");
-      const [updateCount] = await Session.update({valid: false}, {where: {session_id: payload.payload.session_id}});
-      if (updateCount > 0) {
-        console.log("Session invalidated");
-      } else {
-        console.log("Session not invalidated");
-      }
-      return res.json({valid: false, reason: "Invalid JWT"});
-    }
-  }
-  else
-  {
-    const username = body.username;
-    if (!username) {
-      return res.status(418).json({
-        valid: false,
-        reason: "Username not provided"
-      })
-    }
-    let ban =  await check_user_ban(username);
-    let timeout = await check_user_timeout(username);
-    if(ban) {
-      return res.json({valid: false, reason: "User is banned"});
-    }
-    if(timeout) {
-      return res.json({valid: false, reason: "User is timed out"});
-    }
-
-    const user = await User.findOne({
-      attributes: ['id'],
-      where: { username: username }
-    })
-    .then((user) => {
-      if(user === null){
-        return res.status(200).json({
-          valid: false,
-          reason: "User not found"
-        })
-      }
-      const data = user.get({ plain: true })
-
-      // create a new session for the user
-      create_session(data.id,body.is_remembered)
-      .then((session_id) => {
-        // return the session_id to the user
-        return res.status(200).json({
-          valid: true,
-          session_id: session_id
-        })
-      })
-    })
-    .catch((err) => {
-      console.log(err);
-      return res.status(500).json({
-        valid: false,
-        reason: err.toString()
-      })
-    })
-
-  }
-});
 
 app.post('/api/createUser', async (req: Request, res: Response) => {
 
@@ -360,7 +277,96 @@ app.post('/api/createUser', async (req: Request, res: Response) => {
   return res.status(200).json({user_created: true, "new_user": user})
 })
 
+// login route
+// inputs: username: string, (optional) jwt: string, (optional bool) remembered: boolean
+app.post('/api/login', async (req: Request, res: Response) => {
+  const {body} = req;
+  if (body.jwt) {
+    let valid = await verify_JWT(JSON.parse(JSON.stringify(body.jwt)));
+    const payload = jwt.decode(body.jwt, {complete: true});
+    if(valid)
+    {
+      if(!body.username) {
+        return res.status(418).json({valid: false, reason: "Username not provided"});
+      }
+      let ban =  await check_user_ban(body.username);
+      let timeout = await check_user_timeout(body.username);
+      if(ban) {
+        return res.json({valid: false, reason: "User is banned"});
+      }
+      if(timeout) {
+        return res.json({valid: false, reason: "User is timed out"});
+      }
+      return res.json({valid: true, reason: "Valid JWT"});
+    }
+    else
+    {
+      //query
+      console.log("Invalid JWT");
+      const [updateCount] = await Session.update({valid: false}, {where: {session_id: payload.payload.session_id}});
+      if (updateCount > 0) {
+        console.log("Session invalidated");
+      } else {
+        console.log("Session not invalidated");
+      }
+      return res.json({valid: false, reason: "Invalid JWT"});
+    }
+  }
+  // if no jwt included, new login, create a new session
+  else
+  {
+    const username = body.username;
+    if (!username) {
+      return res.status(418).json({
+        valid: false,
+        reason: "Username not provided"
+      })
+    }
+    let ban =  await check_user_ban(username);
+    let timeout = await check_user_timeout(username);
+    if(ban) {
+      return res.json({valid: false, reason: "User is banned"});
+    }
+    if(timeout) {
+      return res.json({valid: false, reason: "User is timed out"});
+    }
+
+    const user = await User.findOne({
+      attributes: ['id'],
+      where: { username: username }
+    })
+    .then((user) => {
+      if(user === null){
+        return res.status(200).json({
+          valid: false,
+          reason: "User not found"
+        })
+      }
+      const data = user.get({ plain: true })
+
+      // create a new session for the user
+      create_session(data.id,body?.is_remembered)
+      .then((session_id) => {
+        // return the session_id to the user
+        return res.status(200).json({
+          valid: true,
+          session_id: session_id
+        })
+      })
+    })
+    .catch((err) => {
+      console.log(err);
+      return res.status(500).json({
+        valid: false,
+        reason: err.toString()
+      })
+    })
+
+  }
+});
+
 // logout route
+// inputs: jwt
 app.delete('/api/logout', async (req: Request, res: Response) => {
   const body = req.body
 
