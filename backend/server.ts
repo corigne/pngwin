@@ -287,29 +287,46 @@ app.post('/api/login', async (req: Request, res: Response) => {
     if(valid)
     {
       if(!body.username) {
-        return res.status(418).json({valid: false, reason: "Username not provided"});
+        return res.status(418).json({
+          login: false,
+          otp_required: false,
+          session_id: null,
+          error: "Username not provided"
+        });
       }
       let ban =  await check_user_ban(body.username);
       let timeout = await check_user_timeout(body.username);
       if(ban) {
-        return res.json({valid: false, reason: "User is banned"});
+        return res.status(200).json({
+          login: false,
+          otp_required: false,
+          session_id: null,
+          error: "User is banned"
+        });
       }
       if(timeout) {
-        return res.json({valid: false, reason: "User is timed out"});
+        return res.status(200).json({
+          login: false,
+          otp_required: false,
+          session_id: null,
+          error: "User is timed out"
+        });
       }
-      return res.json({valid: true, reason: "Valid JWT"});
+      return res.status(200).json({
+        login: true,
+        otp_required: false,
+        session_id: payload.payload.session_id,
+        error: "No error, JWT is valid"
+      });
     }
     else
     {
-      //query
-      console.log("Invalid JWT");
-      const [updateCount] = await Session.update({valid: false}, {where: {session_id: payload.payload.session_id}});
-      if (updateCount > 0) {
-        console.log("Session invalidated");
-      } else {
-        console.log("Session not invalidated");
-      }
-      return res.json({valid: false, reason: "Invalid JWT"});
+      return res.status(401).json({
+        login: false,
+        otp_required: false,
+        session_id: null,
+        error: "Invalid JWT"
+      })
     }
   }
   // if no jwt included, new login, create a new session
@@ -318,50 +335,51 @@ app.post('/api/login', async (req: Request, res: Response) => {
     const username = body.username;
     if (!username) {
       return res.status(418).json({
-        valid: false,
-        reason: "Username not provided"
+        login: false,
+        otp_required: false,
+        session_id: null,
+        error: "Username not provided"
       })
     }
-    let ban =  await check_user_ban(username);
-    let timeout = await check_user_timeout(username);
+    const ban =  await check_user_ban(username);
+    const timeout = await check_user_timeout(username);
     if(ban) {
-      return res.json({valid: false, reason: "User is banned"});
+      return res.status(200).json({
+        login: false,
+        otp_required: false,
+        session_id: null,
+        error: "User is banned"
+      })
     }
     if(timeout) {
-      return res.json({valid: false, reason: "User is timed out"});
+      return res.status(200).json({
+        login: false,
+        otp_required: false,
+        session_id: null,
+        error: "User is timed out"
+      });
     }
 
     const user = await User.findOne({
       attributes: ['id'],
       where: { username: username }
     })
-    .then((user) => {
-      if(user === null){
-        return res.status(200).json({
-          valid: false,
-          reason: "User not found"
-        })
-      }
-      const data = user.get({ plain: true })
-
-      // create a new session for the user
-      create_session(data.id,body?.is_remembered)
-      .then((session_id) => {
-        // return the session_id to the user
-        return res.status(200).json({
-          valid: true,
-          session_id: session_id
-        })
-      })
-    })
-    .catch((err) => {
-      console.log(err);
-      return res.status(500).json({
-        valid: false,
-        reason: err.toString()
-      })
-    })
-
+    if(!user) {
+      return res.status(200).json({
+        login: false,
+        otp_required: false,
+        session_id: null,
+        error: "User not found"
+      });
+    }
+    const data = user.get({ plain: true })
+    const session_id = await create_session(data.id, body.remembered);
+    return res.status(200).json({
+      login: true,
+      otp_required: true,
+      session_id: session_id,
+      error: "No error, OTP required"
+    });
   }
 });
 
