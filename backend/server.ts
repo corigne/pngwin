@@ -1,7 +1,9 @@
 // express imports
-import express, { Request, Response} from 'express'
+import express, { Request, Response, response} from 'express'
 import cors from 'cors'
+import fileUpload, { UploadedFile } from 'express-fileupload'
 import * as dotenv from 'dotenv'
+import fs from 'fs'
 
 // sequelize imports for postgresql
 import { Sequelize } from 'sequelize-typescript'
@@ -24,6 +26,10 @@ const port = 3000
 dotenv.config()
 app.use(express.json())
 app.use(cors())
+app.use(fileUpload({
+  useTempFiles: false,
+  tempFileDir: 'tmp/'
+}))
 
 // Nodemailer Transport Setup
 var transporter = createTransport({
@@ -409,6 +415,19 @@ app.delete('/api/logout', async (req: Request, res: Response) => {
   await delete_session(payload.session_id)
   .then(() => res.status(200).json({logout:true}))
   .catch((err:any) => res.status(500).json({logout:false, error:err}))
+})
+
+app.post('/testFileUpload', async (req: Request, res: Response) => {
+
+  if(req?.files?.image){
+    const img: UploadedFile = req.files.image as UploadedFile
+    await img.mv('tmp/test.png')
+    const img_buffer = fs.readFileSync('tmp/test.png')
+    res.setHeader('Content-Type', 'image/png')
+    return res.send(img_buffer)
+  }
+  return res.status(400).json({error: "No file sent."})
+
 })
 
 app.post('/testSession', async (req: Request, res: Response) => {
