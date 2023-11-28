@@ -104,6 +104,7 @@
     const handleOTPSubmit = async (event) => {
         event.preventDefault();
         await otpLogin();
+        otpRequired = false;
     }
 
     onMount(() => {
