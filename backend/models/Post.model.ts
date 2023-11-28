@@ -15,13 +15,13 @@ export default class Post extends Model{
   public author: bigint
 
   @AllowNull(false)
-  @Column(DataType.JSON)
+  @Column(DataType.JSONB)
   public tags: JSON
 
   @Column(DataType.CHAR(2048))
   public filepath: string
 
-  @Column(DataType.JSON)
+  @Column(DataType.JSONB)
   public votes: JSON
 
   @Column(DataType.BIGINT)

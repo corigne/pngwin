@@ -32,16 +32,16 @@ export default class User extends Model{
   @Column(DataType.BOOLEAN)
   public banned: Boolean
 
-  @Column(DataType.JSON)
+  @Column(DataType.JSONB)
   public posts: JSON
 
-  @Column(DataType.JSON)
+  @Column(DataType.JSONB)
   public collections: JSON
 
   @Column(DataType.CHAR(400))
   public description: string
 
-  @Column(DataType.JSON)
+  @Column(DataType.JSONB)
   public fav_tags: JSON
 
   @Column(DataType.CHAR(2048))

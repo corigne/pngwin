@@ -15,10 +15,10 @@ export default class Collection extends Model{
   @Column(DataType.BIGINT)
   public author: bigint
 
-  @Column(DataType.JSON)
+  @Column(DataType.JSONB)
   public children: JSON
 
-  @Column(DataType.JSON)
+  @Column(DataType.JSONB)
   public votes: JSON
 
   @Column(DataType.BIGINT)
@@ -33,7 +33,7 @@ export default class Collection extends Model{
   public description: string
 
   @AllowNull(false)
-  @Column(DataType.JSON)
+  @Column(DataType.JSONB)
   public tags: JSON
 
   @CreatedAt
