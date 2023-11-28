@@ -208,6 +208,17 @@ const delete_session = async (session_id: string) => {
   }
 }
 
+const getImagePathByID = (imageID: bigint) => {
+  if(!imageID){
+    throw new Error("Image ID not provided.")
+  }
+  if(isNaN(Number(imageID))){
+    throw new Error("Image ID not a number.")
+  }
+  // Basic bucket sort by image ID
+  return `data/images/${Math.floor(Number(imageID)/4096)}`
+}
+
 const issue_JWT =  async (userid: number, session_id: string, length_days: number) => {
   const user = await User.findOne({
     attributes: ['role'],
@@ -220,6 +231,67 @@ const issue_JWT =  async (userid: number, session_id: string, length_days: numbe
   const token = jwt.sign({ userid: userid, session_id: session_id, role: data.role },
   privateKey , { expiresIn: length_days + 'd', algorithm: "RS256" });
   return token;
+}
+
+const storeNewImage = async (imgFile: UploadedFile, imgID: bigint) => {
+
+  if(!imgFile){
+    throw new Error("No file provided.")
+  }
+
+  let sharpImage = Sharp(imgFile.data)
+
+  let thumbnail: Buffer
+  let imgPath: string = ""
+
+  try {
+    // thumbnail = await imageThumbnail(imgFile.data)
+    thumbnail = await sharpImage.resize(1280,720,{withoutEnlargement:true})
+      .png().toBuffer()
+
+  } catch (err) {
+    console.error(err);
+    throw new Error("Error creating thumbnail:" + err)
+  }
+
+  try {
+    imgPath = getImagePathByID(imgID)
+  }
+  catch (err){
+    console.log("Image path error:" + err)
+    throw err
+  }
+
+  const thumb_path: string = `${imgPath}/prev`
+
+  if(!fs.existsSync(imgPath)){
+    try{
+      fs.mkdirSync(imgPath, {recursive: true})
+    }
+    catch(err){
+      throw new Error("Mkdir image path error:" + err)
+    }
+  }
+  if(!fs.existsSync(thumb_path)){
+    try{
+      fs.mkdirSync(thumb_path, {recursive: true})
+    }
+    catch(err){
+      throw new Error("Mkdir image path error:" + err)
+    }
+  }
+
+  const fileName = `${imgID}.png`
+
+  try {
+    fs.writeFileSync(`${thumb_path}/${fileName}`, thumbnail)
+    fs.writeFileSync(`${imgPath}/${fileName}`, imgFile.data)
+  }
+  catch (err){
+    throw new Error("Write file error:" + err)
+  }
+
+  return imgPath
 }
 
 const verify_JWT = async (token: JSON) => {
@@ -421,78 +493,6 @@ app.delete('/api/logout', async (req: Request, res: Response) => {
   .then(() => res.status(200).json({logout:true}))
   .catch((err:any) => res.status(500).json({logout:false, error:err}))
 })
-
-const getImagePathByID = (imageID: bigint) => {
-  if(!imageID){
-    throw new Error("Image ID not provided.")
-  }
-  if(isNaN(Number(imageID))){
-    throw new Error("Image ID not a number.")
-  }
-  // Basic bucket sort by image ID
-  return `data/images/${Math.floor(Number(imageID)/4096)}`
-}
-
-const storeNewImage = async (imgFile: UploadedFile, imgID: bigint) => {
-
-  if(!imgFile){
-    throw new Error("No file provided.")
-  }
-
-  let sharpImage = Sharp(imgFile.data)
-
-  let thumbnail: Buffer
-  let imgPath: string = ""
-
-  try {
-    // thumbnail = await imageThumbnail(imgFile.data)
-    thumbnail = await sharpImage.resize(1280,720,{withoutEnlargement:true})
-      .png().toBuffer()
-
-  } catch (err) {
-    console.error(err);
-    throw new Error("Error creating thumbnail:" + err)
-  }
-
-  try {
-    imgPath = getImagePathByID(imgID)
-  }
-  catch (err){
-    console.log("Image path error:" + err)
-    throw err
-  }
-
-  const thumb_path: string = `${imgPath}/prev`
-
-  if(!fs.existsSync(imgPath)){
-    try{
-      fs.mkdirSync(imgPath, {recursive: true})
-    }
-    catch(err){
-      throw new Error("Mkdir image path error:" + err)
-    }
-  }
-  if(!fs.existsSync(thumb_path)){
-    try{
-      fs.mkdirSync(thumb_path, {recursive: true})
-    }
-    catch(err){
-      throw new Error("Mkdir image path error:" + err)
-    }
-  }
-
-  const fileName = `${imgID}.png`
-
-  try {
-    fs.writeFileSync(`${thumb_path}/${fileName}`, thumbnail)
-    fs.writeFileSync(`${imgPath}/${fileName}`, imgFile.data)
-  }
-  catch (err){
-    throw new Error("Write file error:" + err)
-  }
-
-  return imgPath
-}
 
 // no filetype checking, expects infile already validated as png
 app.post('/api/postImage', async (req: Request, res: Response) => {
