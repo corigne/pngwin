@@ -15,14 +15,17 @@ export default class Post extends Model{
   public author: bigint
 
   @AllowNull(false)
-  @Column(DataType.JSONB)
-  public tags: JSON
+  @Column(DataType.ARRAY(DataType.TEXT))
+  public tags: string[]
 
   @Column(DataType.CHAR(2048))
   public filepath: string
 
-  @Column(DataType.JSONB)
-  public votes: JSON
+  @Column(DataType.ARRAY(DataType.BIGINT))
+  public upvotes: bigint[]
+
+  @Column(DataType.ARRAY(DataType.BIGINT))
+  public downvotes: bigint[]
 
   @Column(DataType.BIGINT)
   public score: bigint

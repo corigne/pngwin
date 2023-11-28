@@ -1,6 +1,6 @@
 import { AllowNull, Column, DataType, Model,
   PrimaryKey, Table, Unique, CreatedAt } from 'sequelize-typescript';
-import 'reflect-metadata';
+import { BIGINT } from '@sequelize/core/types/dialects/abstract/data-types';
 
 @Table({ tableName: 'collections', updatedAt: false })
 export default class Collection extends Model{
@@ -15,11 +15,14 @@ export default class Collection extends Model{
   @Column(DataType.BIGINT)
   public author: bigint
 
-  @Column(DataType.JSONB)
-  public children: JSON
+  @Column(DataType.ARRAY(DataType.BIGINT))
+  public children: bigint[]
 
-  @Column(DataType.JSONB)
-  public votes: JSON
+  @Column(DataType.ARRAY(DataType.BIGINT))
+  public upvotes: bigint[]
+
+  @Column(DataType.ARRAY(DataType.BIGINT))
+  public downvotes: bigint[]
 
   @Column(DataType.BIGINT)
   public score: bigint
@@ -33,8 +36,8 @@ export default class Collection extends Model{
   public description: string
 
   @AllowNull(false)
-  @Column(DataType.JSONB)
-  public tags: JSON
+  @Column(DataType.ARRAY(DataType.TEXT))
+  public tags: string[]
 
   @CreatedAt
   @Column(DataType.DATE)
