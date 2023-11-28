@@ -10,6 +10,29 @@
         Col,
     } from "sveltestrap";
     let verifyopen = false;
+    let usernameOpen = true;
+    let emailOpen = false;
+    let usernameError = false;
+    let username = "";
+
+    const verifyUsername = async () => {
+        const res = await fetch("http://localhost:3000/api/userID?username={$username}");
+        const data = await res.json();
+        console.log(data.error)
+        if (data.user_exists) {
+            usernameError = true;
+            return;
+        }
+        else {
+            usernameOpen = false;
+            emailOpen = true;
+        }
+    };
+
+    const handleUserSubmit = async (event) =>{
+        event.preventDefault();
+        await verifyUsername();
+    }
     const verifyToggle = () => (verifyopen = !verifyopen);
 </script>
 
@@ -18,32 +41,30 @@
         >Sign Up</Button
     >
     <Modal isOpen={verifyopen} backdrop={false} {verifyToggle}>
-        <ModalHeader {verifyToggle}>Verify</ModalHeader>
+        {#if usernameOpen}
+        <ModalHeader {verifyToggle}>Verify Username</ModalHeader>
         <ModalBody>
-            <h6>Enter a username.</h6>
+            <h6>Username</h6>
             <InputGroup>
-                <Input placeholder="Ex. bbygworlpngwin" />
+                <Input bind:value={username} placeholder="Enter username" />
             </InputGroup>
-            <Col class="text-front py-2">
-                <Button color="warning">Check</Button>
+            {#if usernameError}
+            <Col class="text-center">
+                <p class="text-danger">Username exists!</p>
             </Col>
-            <h6>Enter an email to receive a one time password at.</h6>
-            <InputGroup>
-                <Input placeholder="Ex. bbygworlpngwin@slay.com" />
-            </InputGroup>
-            <Col class="text-front py-2">
-                <Button color="warning">Send OTP</Button>
-            </Col>
-            <h6>Enter unique one time password in the field below.</h6>
-            <InputGroup>
-                <Input placeholder="Ex. 123456" />
-            </InputGroup>
-            <Col class="text-front py-2">
-                <Button color="warning">Submit</Button>
-            </Col>
+            {/if}
         </ModalBody>
         <ModalFooter>
-            <Button color="secondary" on:click={verifyToggle}>Cancel</Button>
+            <form on:submit={handleUserSubmit}>
+                <Button color="primary" type="submit">
+                    Submit
+                </Button>
+            </form>
+            <Button color="secondary" on:click={verifyToggle}>
+                Cancel
+            </Button>
         </ModalFooter>
+        {/if}
+        {if}
     </Modal>
 </div>
