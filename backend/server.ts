@@ -647,12 +647,6 @@ app.post('/api/postImage', async (req: Request, res: Response) => {
       score: 1
     })
 
-    if ( !(post instanceof Post) )
-      return res.status(400).json({
-        post_created: false,
-        reason: "Invalid post data fields, check field types."
-      })
-
     try{
       await post.save()
     }
@@ -685,31 +679,32 @@ app.post('/api/postImage', async (req: Request, res: Response) => {
       })
     }
 
-    post.set({
-      filepath: imgPath
-    })
     try{
-      await post.save()
-    }
-    catch(err: any){
-      try{
-        await delete_image(imgPath, post.id)
-        await post.destroy()
-      }
-      catch(err){
-        console.log("Error cleaning up bad POST:" + err)
-      }
-
-      return res.status(500).json({
-        postSucess: false,
-        post: null,
-        error: "Database error:" + err
+      await post.update({
+        filepath: imgPath
       })
+
+      const user = await User.findByPk(token.userid)
+
+      if(!user){
+        throw new Error("Unable to add post to user.")
+      }
+
+      const user_posts = user.get('posts')
+
+      if (!user_posts){
+        await user.update({
+          posts: [post.id]
+        })
+      }
+      else{
+        user_posts.push(post.id)
+        await user.update({
+          posts: user_posts
+        })
+      }
     }
-
-    const user = await User.findByPk(token.userid)
-
-    if(!user){
+    catch(err){
       try{
         await delete_image(imgPath, post.id)
         await post.destroy()
@@ -717,11 +712,10 @@ app.post('/api/postImage', async (req: Request, res: Response) => {
       catch(err){
         console.log("Error cleaning up bad POST:" + err)
       }
-
       return res.status(500).json({
         postSucess: false,
         post: null,
-        error: "Database error unable to attribute post to user."
+        error: "Post creation error:" + err
       })
     }
 
