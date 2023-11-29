@@ -192,6 +192,17 @@ const create_session = async (in_user_id: number, is_remembered?: boolean) => {
   return new_session_id
 }
 
+const delete_image = async (imgPath: string, postID: bigint) => {
+  try{
+    fs.rmSync(`${imgPath}/prev/${postID}.png`)
+    fs.rmSync(`${imgPath}/${postID}.png`)
+    return true
+  }
+  catch(err){
+      throw new Error("Filesystem error:" + err)
+  }
+}
+
 const delete_session = async (session_id: string) => {
 
   if ( !validateUUID(session_id) ){
@@ -430,7 +441,6 @@ app.delete('/api/deleteImage', async (req: Request, res: Response) => {
     })
   }
 
-  //TODO: Remove post from all associated collections in DB.
   const collections:Collection[]|null = await Collection.findAll({
     where: {
       'children' : {[Op.contains]: [BigInt(postID)]}
@@ -454,15 +464,15 @@ app.delete('/api/deleteImage', async (req: Request, res: Response) => {
   }
 
   try{
-    fs.rmSync(`${imgPath}/prev/${params.postID}.png`)
-    fs.rmSync(`${imgPath}/${params.postID}.png`)
+    delete_image(imgPath, postID)
   }
   catch(err){
     return res.status(500).json({
       deleted: false,
-      error: "Filesystem error:" + err
+      error: err
     })
   }
+
   // return deleted
   return res.status(200).json({
     deleted: true,
@@ -661,14 +671,19 @@ app.post('/api/postImage', async (req: Request, res: Response) => {
       imgPath = await storeNewImage(img, post.id)
     }
     catch(err){
+      try{
+        await post.destroy()
+      }
+      catch(err){
+        console.log("Error cleaning up bad POST:" + err)
+      }
+
       return res.status(500).json({
         postSucess: false,
-        reason: "Store image error.",
-        error: err
+        post: null,
+        error: "Database error:" + err
       })
     }
-
-    console.log(imgPath)
 
     post.set({
       filepath: imgPath
@@ -677,14 +692,40 @@ app.post('/api/postImage', async (req: Request, res: Response) => {
       await post.save()
     }
     catch(err: any){
+      try{
+        await delete_image(imgPath, post.id)
+        await post.destroy()
+      }
+      catch(err){
+        console.log("Error cleaning up bad POST:" + err)
+      }
+
       return res.status(500).json({
-        post_created: false,
-        reason: "Database error.",
-        error: err
+        postSucess: false,
+        post: null,
+        error: "Database error:" + err
       })
     }
 
-    return res.status(200).json({postSucess: true, post: post, id: post.id})
+    const user = await User.findByPk(token.userid)
+
+    if(!user){
+      try{
+        await delete_image(imgPath, post.id)
+        await post.destroy()
+      }
+      catch(err){
+        console.log("Error cleaning up bad POST:" + err)
+      }
+
+      return res.status(500).json({
+        postSucess: false,
+        post: null,
+        error: "Database error unable to attribute post to user."
+      })
+    }
+
+    return res.status(200).json({postSucess: true, post: post})
   }
   return res.status(400).json({error: "No file sent."})
 
