@@ -11,10 +11,12 @@ import Sharp from 'sharp'
 
 // sequelize imports for postgresql
 import { Sequelize } from 'sequelize-typescript'
+import { Op } from '@sequelize/core';
 import User from './models/User.model'
 import Session from './models/Session.model'
 import Timeout from './models/Timeout.model'
 import Post from './models/Post.model'
+import Collection from './models/Collection.model'
 
 // nodemailer and email-templates stuff
 import { createTransport } from 'nodemailer'
@@ -23,6 +25,8 @@ import Email from 'email-templates'
 // jwt imports
 import {Jwks, JwksKey} from './types'
 import { v4 as uuidv4, validate as validateUUID, parse as parseUUID} from 'uuid'
+import { ChildProcess } from 'child_process'
+import { col } from 'sequelize'
 const jwt = require('jsonwebtoken')
 
 // Express Setup
@@ -360,6 +364,112 @@ app.post('/api/createUser', async (req: Request, res: Response) => {
   return res.status(200).json({user_created: true, "new_user": user})
 })
 
+// delete image route
+// inputs: token: jwt string, postID
+// outputs: status of image post deletion
+app.delete('/api/deleteImage', async (req: Request, res: Response) => {
+
+  const params = req.query
+
+  if(!params.token){
+    return res.status(401).json({
+      deleted: false,
+      error: "JWT not provided."
+    })
+  }
+
+  let token;
+
+  try{
+    token = await jwt.verify(params.token, pub)
+  }
+  catch(err){
+    return res.status(400).json({
+      post_created: false,
+      reason:"Invalid JWT",
+      error: err
+    })
+  }
+
+  if(!params.postID || typeof params.postID !== 'string'){
+    return res.status(401).json({
+      deleted: false,
+      error: "ImageID not provided or is not a string."
+    })
+  }
+
+  const postID:bigint= BigInt(params.postID)
+
+  const post: Post|null = await Post.findByPk(postID)
+
+  if(!post){
+    return res.status(401).json({
+      deleted: false,
+      error: "Post with provided imageID does not exist."
+    })
+  }
+
+  const isAuthor:boolean = post.dataValues.author === token.userid
+  const isModerator:boolean = token.role > 0
+  if(!isAuthor && !isModerator){
+    return res.status(401).json({
+      deleted: false,
+      error: "Not authorized to delete this post, not author or moderator."
+    })
+  }
+
+  const imgPath = getImagePathByID(BigInt(postID))
+
+  try{
+    post.destroy()
+  }
+  catch(err){
+    return res.status(500).json({
+      deleted: false,
+      error: "Database error:" + err
+    })
+  }
+
+  //TODO: Remove post from all associated collections in DB.
+  const collections:Collection[]|null = await Collection.findAll({
+    where: {
+      'children' : {[Op.contains]: [BigInt(postID)]}
+    }
+  })
+
+  if(collections.length !== 0){
+    try{
+      collections.forEach(collection => {
+        collection.update({
+          children: collection.children.filter(id => id !== postID)
+        })
+      })
+    }
+    catch(err){
+      return res.status(500).json({
+        deleted: false,
+        error: "Database error:" + err
+      })
+    }
+  }
+
+  try{
+    fs.rmSync(`${imgPath}/prev/${params.postID}.png`)
+    fs.rmSync(`${imgPath}/${params.postID}.png`)
+  }
+  catch(err){
+    return res.status(500).json({
+      deleted: false,
+      error: "Filesystem error:" + err
+    })
+  }
+  // return deleted
+  return res.status(200).json({
+    deleted: true,
+    error: null
+  })
+})
+
 // login route
 // inputs: username: string, (optional) jwt: string, (optional bool) remembered: boolean
 app.post('/api/login', async (req: Request, res: Response) => {
@@ -520,9 +630,10 @@ app.post('/api/postImage', async (req: Request, res: Response) => {
   if(req?.files?.image){
 
     const post = new Post({
-      author: token.userid as bigint,
-      tags: JSON.parse(body.tags as string),
-      votes: {liked:[token.userid], disliked:[]},
+      author: token.userid,
+      tags: JSON.parse(body.tags),
+      upvotes: [token.userid],
+      downvotes: [],
       score: 1
     })
 
@@ -539,7 +650,7 @@ app.post('/api/postImage', async (req: Request, res: Response) => {
       return res.status(500).json({
         post_created: false,
         reason: "Database error.",
-        error: err
+        err: err.toString()
       })
     }
 
@@ -573,7 +684,7 @@ app.post('/api/postImage', async (req: Request, res: Response) => {
       })
     }
 
-    return res.status(200).json({postSucess: true, post: post})
+    return res.status(200).json({postSucess: true, post: post, id: post.id})
   }
   return res.status(400).json({error: "No file sent."})
 
@@ -649,6 +760,33 @@ app.post('/testTimeout', async (req: Request, res: Response) => {
   }
 
   return res.status(200).json({timeout_created: true, "new_timeout": timeout})
+})
+
+app.get('/testToken', async (req: Request, res: Response) => {
+
+  if(!req.query.token){
+    return res.status(418).json({
+      valid: false,
+      status: "No JWT provided for validation.",
+    })
+  }
+
+  let token;
+  try{
+    token = await jwt.verify(req.query.token, pub)
+  }
+  catch(err){
+    return res.status(401).json({
+      valid: false,
+      status: "Error, invalid JWT:" + err
+    })
+  }
+
+  console.log(token)
+  return res.status(200).json({
+    valid: true,
+    status: "Valid token."
+  })
 })
 
 app.post('/testJWT', async (req: Request, res: Response) => {

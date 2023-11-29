@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/corigne/pngwin#readme",
   "dependencies": {
+    "@sequelize/core": "^7.0.0-alpha.29",
     "@types/email-templates": "^10.0.3",
     "@types/jsonwebtoken": "^9.0.4",
     "@types/nodemailer": "^6.4.13",
