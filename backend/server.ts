@@ -335,7 +335,10 @@ app.post('/api/createUser', async (req: Request, res: Response) => {
     var missing: string = ""
     missing += (body.email) ? " " : "email, "
     missing += (body.username) ? " " : "username"
-    return res.status(418).json({user_created: false, reason: "User missing required fields:" + missing})
+    return res.status(418).json({
+      user_created: false,
+      reason: "User missing required fields:" + missing
+    })
   }
 
   // verify user doesn't already exist, return Error "user already exists" if exists
@@ -347,7 +350,10 @@ app.post('/api/createUser', async (req: Request, res: Response) => {
 
   if (existing_user){
     // console.log(existing_user)
-    return res.status(418).json({user_created: false, reason: "User already exists with that username."})
+    return res.status(418).json({
+      user_created: false,
+      reason: "User already exists with that username."
+    })
   }
 
   // create new user
@@ -363,16 +369,25 @@ app.post('/api/createUser', async (req: Request, res: Response) => {
   })
 
   if ( !(user instanceof User) )
-    return res.status(400).json({user_created: false, reason: "Invalid username or email."})
+    return res.status(400).json({
+      user_created: false,
+      reason: "Invalid username or email."
+    })
 
   try{
     await user.save()
   }
   catch(err: any){
-    return res.status(500).json({user_created: false, reason: "Database error."})
+    return res.status(500).json({
+      user_created: false,
+      reason: "Database error."
+    })
   }
 
-  return res.status(200).json({user_created: true, "new_user": user})
+  return res.status(200).json({
+    user_created: true,
+    "new_user": user
+  })
 })
 
 // delete image route
@@ -743,7 +758,10 @@ app.post('/testSession', async (req: Request, res: Response) => {
 
   const {body} = req
   if(!body.user_id){
-    return res.status(400).json({session_created: false, reason: "Missing user_id."})
+    return res.status(400).json({
+      session_created: false,
+      reason: "Missing user_id."
+    })
   }
 
   await create_session(body.user_id, body?.remembered)
@@ -759,16 +777,28 @@ app.post('/testSession', async (req: Request, res: Response) => {
 app.post('/testTimeout', async (req: Request, res: Response) => {
   const {body} = req
   if(!body.user_id){
-    return res.status(400).json({timeout_created: false, reason: "Missing user_id."})
+    return res.status(400).json({
+      timeout_created: false,
+      reason: "Missing user_id."
+    })
   }
   if(!body.length_min){
-    return res.status(400).json({timeout_created: false, reason: "Missing length."})
+    return res.status(400).json({
+      timeout_created: false,
+      reason: "Missing length."
+    })
   }
   if(!body.mod_id){
-    return res.status(400).json({timeout_created: false, reason: "Missing mod_id."})
+    return res.status(400).json({
+      timeout_created: false,
+      reason: "Missing mod_id."
+    })
   }
   if(!body.reason){
-    return res.status(400).json({timeout_created: false, reason: "Missing reason."})
+    return res.status(400).json({
+      timeout_created: false,
+      reason: "Missing reason."
+    })
   }
 
   const user_id = body.user_id
@@ -785,16 +815,25 @@ app.post('/testTimeout', async (req: Request, res: Response) => {
   })
 
   if ( !(timeout instanceof Timeout) )
-    return res.status(400).json({timeout_created: false, reason: "Invalid timeout."})
+    return res.status(400).json({
+      timeout_created: false,
+      reason: "Invalid timeout."
+    })
 
   try{
     await timeout.save()
   }
   catch(err: any){
-    return res.status(500).json({timeout_created: false, reason: "Database error: " + err.toString()})
+    return res.status(500).json({
+      timeout_created: false,
+      reason: "Database error: " + err.toString()
+    })
   }
 
-  return res.status(200).json({timeout_created: true, "new_timeout": timeout})
+  return res.status(200).json({
+    timeout_created: true,
+    "new_timeout": timeout
+  })
 })
 
 app.get('/testToken', async (req: Request, res: Response) => {
