@@ -23,7 +23,7 @@ import Email from 'email-templates'
 
 // jwt imports
 import {Jwks, JwksKey} from './types'
-import { v4 as uuidv4, validate as validateUUID, parse as parseUUID} from 'uuid'
+import { v4 as uuidv4, validate as validateUUID } from 'uuid'
 const jwt = require('jsonwebtoken')
 
 // Express Setup
