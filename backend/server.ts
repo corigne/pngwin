@@ -6,7 +6,6 @@ import fileUpload, { UploadedFile } from 'express-fileupload'
 // general npm imports
 import * as dotenv from 'dotenv'
 import fs from 'fs'
-import imageThumbnail from 'image-thumbnail'
 import Sharp from 'sharp'
 
 // sequelize imports for postgresql
