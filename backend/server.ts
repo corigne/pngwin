@@ -24,6 +24,7 @@ import Email from 'email-templates'
 // jwt imports
 import {Jwks, JwksKey} from './types'
 import { v4 as uuidv4, validate as validateUUID } from 'uuid'
+import { blob as image_blob } from 'stream/consumers'
 const jwt = require('jsonwebtoken')
 
 // Express Setup
@@ -492,24 +493,81 @@ app.delete('/api/deleteImage', async (req: Request, res: Response) => {
   })
 })
 
-// Get a single image's relevant row information from the database by imgID
-// by default return the image information from the db and a blob for a 720p preview
-// optional input fullsize returns an additional fs-blob for the full size
-// inputs: imageID: string, fullsize: boolean
+// Get a single image's blob data
+// by default return the image blob from the server storage, 720p or less
+// optional input fullsize returns instead a blob of full image size
+// input: imageID: number
+// output: success: bool, buffer: buffer, error: string
 app.post('/api/getImage', async (req: Request, res: Response) => {
+
   const {body} = req
 
   if (!body.imageID) {
-    res.status(418).json({
-      image: null,
-      blob: null,
+    return res.status(418).json({
+      success: false,
+      buffer: null,
       error: "No imageID provided."
     })
   }
 
   let fullsize = (body.fullsize)? body.fullsize : false
+  let image_buffer = null
+  let filepath = getImagePathByID(body.imageID)
 
-  console.log(fullsize)
+  try{
+  if(fullsize){
+    image_buffer = fs.readFileSync(`${filepath}/${body.imageID}.png`)
+  }
+
+  image_buffer = fs.readFileSync(`${filepath}/prev/${body.imageID}.png`)
+  }
+  catch(err){
+    res.status(500).json({
+      success: false,
+      blob: null,
+      error: "FS Read error: " + err
+    })
+  }
+
+  return res.status(200).json({
+    success: true,
+    blob: image_buffer,
+    error: null
+  })
+
+})
+// Get a single image's relevant row information from the database by imgID
+// inputs: imageID: string, fullsize: boolean
+// outputs: success: bool, image: json, error: string
+app.post('/api/getPost', async (req: Request, res: Response) => {
+
+  const {body} = req
+
+  if (!body.imageID) {
+    return res.status(418).json({
+      success: false,
+      image: null,
+      error: "No imageID provided."
+    })
+  }
+
+  const post = await Post.findByPk(body.imageID, {
+    attributes: [ "id", "author", "tags", "score", "date_created" ]
+  })
+
+  if(!post){
+    return res.status(500).json({
+      success: false,
+      image: null,
+      error: `Image with id:${body.imageID} not found.`
+    })
+  }
+
+  return res.status(200).json({
+    success: true,
+    image: post,
+    error: null
+  })
 })
 
 // login route
