@@ -1,5 +1,5 @@
 // express imports
-import express, { Request, Response, response} from 'express'
+import express, { Request, Response} from 'express'
 import cors from 'cors'
 import fileUpload, { UploadedFile } from 'express-fileupload'
 
@@ -25,8 +25,6 @@ import Email from 'email-templates'
 // jwt imports
 import {Jwks, JwksKey} from './types'
 import { v4 as uuidv4, validate as validateUUID, parse as parseUUID} from 'uuid'
-import { ChildProcess } from 'child_process'
-import { col } from 'sequelize'
 const jwt = require('jsonwebtoken')
 
 // Express Setup
