@@ -495,6 +495,26 @@ app.delete('/api/deleteImage', async (req: Request, res: Response) => {
   })
 })
 
+// Get a single image's relevant row information from the database by imgID
+// by default return the image information from the db and a blob for a 720p preview
+// optional input fullsize returns an additional fs-blob for the full size
+// inputs: imageID: string, fullsize: boolean
+app.post('/api/getImage', async (req: Request, res: Response) => {
+  const {body} = req
+
+  if (!body.imageID) {
+    res.status(418).json({
+      image: null,
+      blob: null,
+      error: "No imageID provided."
+    })
+  }
+
+  let fullsize = (body.fullsize)? body.fullsize : false
+
+  console.log(fullsize)
+})
+
 // login route
 // inputs: username: string, (optional) jwt: string, (optional bool) remembered: boolean
 app.post('/api/login', async (req: Request, res: Response) => {
