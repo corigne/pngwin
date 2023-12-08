@@ -72,17 +72,11 @@ const privateKey = process.env.RSA_PRIV_KEY
 const pub = process.env.RSA_PUB_KEY
 
 // App Environment Setup
-const blocklist = fs.readFile('blocklist.txt', (err, data) => {
-  if(err){
-    console.log("Error reading blocklist.txt: " + err)
-    return ""
-  }
-
-  console.log('Converting blocklist.txt into badword array, please wait.')
-  return data.toString('utf-8').split('n')
-})
-
-console.log(blocklist)
+const badwords: Array<string> = fs.readFileSync('blocklist.txt')
+  .toString('utf-8')
+  .split(/[,\s]/)
+  .filter(Boolean)
+console.log('Blocklist parsed:\n', badwords)
 
 ///////////////////
 // Helper Functions
