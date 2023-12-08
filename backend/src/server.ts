@@ -597,6 +597,7 @@ app.get('/api/getPost', async (req: Request, res: Response) => {
 // api endpoint to get the current user's vote for a specific image
 // input token: string, postID: number
 // output liked: bool, disliked: bool, error: string
+// TODO: generalize the vote code
 app.get('/api/getVoted', verifyToken, async (req: Request, res: Response) => {
 
   const {query} = req
@@ -617,7 +618,7 @@ app.get('/api/getVoted', verifyToken, async (req: Request, res: Response) => {
     })
   }
 
-  let valid = await verify_JWT(JSON.parse(JSON.stringify(req.token)))
+  let valid = await jwt.verify(req.token, pub)
 
   if(!valid) {
     return res.status(403).json({
@@ -1232,8 +1233,100 @@ app.post('/api/verifyOTP', async (req: Request, res: Response) => {
 })
 
 // api endpoint for upvoting or downvoting a post
-app.post('/api/vote', async (req: Request, res: Response) => {
+// input postID: bigint/number, vote: number
+// 1 = liked, -1 = disliked, 0 = the votes will be reset
+// output success: boolean, error: string
+// TODO: generalize the vote code
+app.post('/api/vote', verifyToken, async (req: Request, res: Response) => {
 
+  const {body} = req
+
+  if(!body.postID) {
+    return res.status(400).json({
+      success: false,
+      error: "No postID in query string."
+    })
+  }
+
+  if(!req.token) {
+    return res.status(400).json({
+      success: false,
+      error: "No token in request body."
+    })
+  }
+
+  let valid = await jwt.verify(req.token, pub)
+
+  if(!valid) {
+    return res.status(403).json({
+      success: false,
+      error: "No token in request body."
+    })
+  }
+
+  const userid:bigint = jwt.decode(req.token).userid
+  const postID:bigint = BigInt(body.postID as string)
+
+  const post = await Post.findByPk(postID, {
+    attributes: ["upvotes", "downvotes"]
+  })
+
+  if(!post){
+    return res.status(500).json({
+      success: false,
+      error: `Post with id:${postID} was not found.`
+    })
+  }
+
+  const up = post.get('upvotes')
+  const down = post.get('downvotes')
+  const score = post.get('score')
+
+  try {
+    let score_mod = BigInt(0)
+
+    if(body.vote > 0){
+
+      score_mod = (down.includes(userid)) ? BigInt(2) : BigInt(1)
+
+      await post.update({
+        upvotes: up.push(userid),
+        downvotes: down.filter(id => id !== userid),
+        score: score + score_mod
+      })
+    }
+    else if(body.vote < 0){
+
+      score_mod = (down.includes(userid)) ? BigInt(-2) : BigInt(-1)
+
+      await post.update({
+        up: up.filter(id => id !== userid),
+        down: down.push(userid),
+        score: score + score_mod
+      })
+    }
+    else {
+      score_mod += (up.includes(userid)) ? BigInt(-1) : BigInt(0)
+      score_mod += (down.includes(userid)) ? BigInt(1) : BigInt(0)
+
+      await post.update({
+        up: up.filter(id => id !== userid),
+        downvotes: down.filter(id => id !== userid),
+        score: score + score_mod
+      })
+    }
+  }
+  catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: "Database update error: " + err
+    })
+  }
+
+  return res.status(200).json({
+    success: true,
+    error: null
+  })
 })
 
 app.get('/.well-known/jwks.json', (res: Response) => {

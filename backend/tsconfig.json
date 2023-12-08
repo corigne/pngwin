@@ -13,7 +13,7 @@
 
     "strict": true,
     "skipLibCheck": true,
-    "typeRoots": ["./src/index.d.ts", "./node_modules/@types/"]
+    "typeRoots": ["./src/index.d.ts"]
   },
-  "ts-node": {  "files": true },
+  "ts-node": { "files": true },
 }
