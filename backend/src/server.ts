@@ -1,5 +1,5 @@
 // express imports
-import express, { Request, Response} from 'express'
+import express, { NextFunction, Request, Response} from 'express'
 import cors from 'cors'
 import fileUpload, { UploadedFile } from 'express-fileupload'
 
@@ -322,6 +322,20 @@ const verify_JWT = async (token: JSON) => {
   })
 }
 
+// the auth middleware function
+const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
+  const bearerHeader = req.headers['authorization']
+  if(typeof bearerHeader !== 'undefined'){
+
+    const bearer = bearerHeader.split(' ');
+    const token = bearer[1]
+    req.token = token
+    next()
+  } else {
+    res.sendStatus(403)
+  }
+}
+
 /////////////////////////////////
 // API Endpoints ////////////////
 // External Facing API Functions
@@ -580,6 +594,60 @@ app.get('/api/getPost', async (req: Request, res: Response) => {
   })
 })
 
+// api endpoint to get the current user's vote for a specific image
+// input token: string, postID: number
+// output liked: bool, disliked: bool, error: string
+app.get('/api/getVoted', verifyToken, async (req: Request, res: Response) => {
+
+  const {query} = req
+
+  if(!query.postID) {
+    return res.status(400).json({
+      liked: null,
+      disliked: null,
+      error: "No postID in query string."
+    })
+  }
+
+  if(!req.token) {
+    return res.status(400).json({
+      liked: null,
+      disliked: null,
+      error: "No token in request body."
+    })
+  }
+
+  let valid = await verify_JWT(JSON.parse(JSON.stringify(req.token)))
+
+  if(!valid) {
+    return res.status(403).json({
+      liked: null,
+      disliked: null,
+      error: "No token in request body."
+    })
+  }
+
+  const {userid} = jwt.decode(req.token)
+  const postID:bigint = BigInt(query.postID as string)
+  const post = await Post.findByPk(postID)
+
+  if(!post){
+    return res.status(500).json({
+      liked: null,
+      disliked: null,
+      error: `Post with id:${postID} was not found.`
+    })
+  }
+
+  const up = post.get('upvotes')
+  const down = post.get('downvotes')
+
+  const liked: Boolean = (up) ? up.includes(userid) : false
+  const disliked: Boolean = (down) ? down.includes(userid) : false
+
+  return res.status(200).json({ liked: liked, disliked: disliked })
+
+})
 
 // login route
 // inputs: username: string, (optional) jwt: string, (optional bool) remembered: boolean
@@ -1161,6 +1229,11 @@ app.post('/api/verifyOTP', async (req: Request, res: Response) => {
       verified: false, token: null, reason: "Invalid OTP"
     })
   }
+})
+
+// api endpoint for upvoting or downvoting a post
+app.post('/api/vote', async (req: Request, res: Response) => {
+
 })
 
 app.get('/.well-known/jwks.json', (res: Response) => {

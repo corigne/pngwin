@@ -2,11 +2,12 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "png.win express api",
-  "main": "server.ts",
+  "main": "dist/server.js",
   "scripts": {
     "build": "npx tsc",
     "start": "node dist/server.js",
-    "dev": "nodemon server.ts"
+    "lint": "eslint . --ext .ts",
+    "dev": "nodemon src/server.ts"
   },
   "repository": {
     "type": "git",
