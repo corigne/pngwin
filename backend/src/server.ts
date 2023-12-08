@@ -1264,12 +1264,10 @@ app.post('/api/vote', verifyToken, async (req: Request, res: Response) => {
     })
   }
 
-  const userid:bigint = jwt.decode(req.token).userid
+  const userid:bigint = BigInt(jwt.decode(req.token).userid)
   const postID:bigint = BigInt(body.postID as string)
 
-  const post = await Post.findByPk(postID, {
-    attributes: ["upvotes", "downvotes"]
-  })
+  const post = await Post.findByPk(postID)
 
   if(!post){
     return res.status(500).json({
@@ -1278,41 +1276,55 @@ app.post('/api/vote', verifyToken, async (req: Request, res: Response) => {
     })
   }
 
-  const up = post.get('upvotes')
-  const down = post.get('downvotes')
-  const score = post.get('score')
+  let up: Array<bigint> = post.get('upvotes').map(id => BigInt(id))
+  let down: Array<bigint> = post.get('downvotes').map(id => BigInt(id))
+  let score:bigint = BigInt(post.get('score'))
 
   try {
-    let score_mod = BigInt(0)
 
-    if(body.vote > 0){
+    if(body.vote > 0 && !up.includes(userid)){
 
-      score_mod = (down.includes(userid)) ? BigInt(2) : BigInt(1)
+      const new_up = [...up, userid]
+      const new_down = down.filter(id => id !== userid)
+      score = BigInt(new_up.length - new_down.length)
+
+      console.log("up:", new_up)
+      console.log("down:", new_down)
+      console.log("score:", score)
 
       await post.update({
-        upvotes: up.push(userid),
-        downvotes: down.filter(id => id !== userid),
-        score: score + score_mod
+        upvotes: new_up,
+        downvotes: new_down,
+        score: score
       })
     }
-    else if(body.vote < 0){
 
-      score_mod = (down.includes(userid)) ? BigInt(-2) : BigInt(-1)
+    else if(body.vote < 0 && !down.includes(userid)){
+
+      const new_down = [...down, userid]
+      const new_up = up.filter(id => id !== userid)
+      score = BigInt(new_up.length - new_down.length)
+
+      console.log("up:", new_up)
+      console.log("down:", new_down)
+      console.log("score:", score)
 
       await post.update({
-        up: up.filter(id => id !== userid),
-        down: down.push(userid),
-        score: score + score_mod
+        upvotes: new_up,
+        downvotes: new_down,
+        score: score
       })
     }
-    else {
-      score_mod += (up.includes(userid)) ? BigInt(-1) : BigInt(0)
-      score_mod += (down.includes(userid)) ? BigInt(1) : BigInt(0)
+
+    else if (body.vote == 0){
+      const new_up = up.filter(id => id !== userid)
+      const new_down = down.filter(id => id !== userid)
+      score = BigInt(new_up.length - new_down.length)
 
       await post.update({
-        up: up.filter(id => id !== userid),
-        downvotes: down.filter(id => id !== userid),
-        score: score + score_mod
+        upvotes: new_up,
+        downvotes: new_down,
+        score: score
       })
     }
   }
