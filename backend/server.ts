@@ -24,7 +24,6 @@ import Email from 'email-templates'
 // jwt imports
 import {Jwks, JwksKey} from './types'
 import { v4 as uuidv4, validate as validateUUID } from 'uuid'
-import { blob as image_blob } from 'stream/consumers'
 const jwt = require('jsonwebtoken')
 
 // Express Setup
@@ -71,6 +70,19 @@ const sequelize = new Sequelize({
 // JWT Setup
 const privateKey = process.env.RSA_PRIV_KEY
 const pub = process.env.RSA_PUB_KEY
+
+// App Environment Setup
+const blocklist = fs.readFile('blocklist.txt', (err, data) => {
+  if(err){
+    console.log("Error reading blocklist.txt: " + err)
+    return ""
+  }
+
+  console.log('Converting blocklist.txt into badword array, please wait.')
+  return data.toString('utf-8').split('n')
+})
+
+console.log(blocklist)
 
 ///////////////////
 // Helper Functions
@@ -814,6 +826,8 @@ app.post('/api/postImage', async (req: Request, res: Response) => {
   return res.status(400).json({error: "No file sent."})
 
 })
+
+app.post('/api/search')
 
 app.post('/testFileUpload', async (req: Request, res: Response) => {
 
