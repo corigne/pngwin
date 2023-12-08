@@ -504,11 +504,11 @@ app.delete('/api/deleteImage', async (req: Request, res: Response) => {
 // optional input fullsize returns instead a blob of full image size
 // input: imageID: number
 // output: success: bool, buffer: buffer, error: string
-app.post('/api/getImage', async (req: Request, res: Response) => {
+app.get('/api/getImage', async (req: Request, res: Response) => {
 
-  const {body} = req
+  const {query} = req
 
-  if (!body.imageID) {
+  if (!query.imageID) {
     return res.status(418).json({
       success: false,
       buffer: null,
@@ -516,16 +516,18 @@ app.post('/api/getImage', async (req: Request, res: Response) => {
     })
   }
 
-  let fullsize = (body.fullsize)? body.fullsize : false
+  const imageID:bigint = BigInt(query.imageID as string)
+
+  let fullsize = (query.fullsize)? query.fullsize : false
   let image_buffer = null
-  let filepath = getImagePathByID(body.imageID)
+  let filepath = getImagePathByID(imageID)
 
   try{
   if(fullsize){
-    image_buffer = fs.readFileSync(`${filepath}/${body.imageID}.png`)
+    image_buffer = fs.readFileSync(`${filepath}/${imageID}.png`)
   }
 
-  image_buffer = fs.readFileSync(`${filepath}/prev/${body.imageID}.png`)
+  image_buffer = fs.readFileSync(`${filepath}/prev/${imageID}.png`)
   }
   catch(err){
     res.status(500).json({
@@ -545,19 +547,21 @@ app.post('/api/getImage', async (req: Request, res: Response) => {
 // Get a single image's relevant row information from the database by imgID
 // inputs: imageID: string, fullsize: boolean
 // outputs: success: bool, image: json, error: string
-app.post('/api/getPost', async (req: Request, res: Response) => {
+app.get('/api/getPost', async (req: Request, res: Response) => {
 
-  const {body} = req
+  const {query} = req
 
-  if (!body.imageID) {
+  if (!query.imageID) {
     return res.status(418).json({
       success: false,
-      image: null,
+      buffer: null,
       error: "No imageID provided."
     })
   }
 
-  const post = await Post.findByPk(body.imageID, {
+  const imageID:bigint = BigInt(query.imageID as string)
+
+  const post = await Post.findByPk(imageID, {
     attributes: [ "id", "author", "tags", "score", "date_created" ]
   })
 
@@ -565,7 +569,7 @@ app.post('/api/getPost', async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       image: null,
-      error: `Image with id:${body.imageID} not found.`
+      error: `Image with id:${imageID} not found.`
     })
   }
 
@@ -575,6 +579,7 @@ app.post('/api/getPost', async (req: Request, res: Response) => {
     error: null
   })
 })
+
 
 // login route
 // inputs: username: string, (optional) jwt: string, (optional bool) remembered: boolean
@@ -826,16 +831,17 @@ app.post('/api/postImage', async (req: Request, res: Response) => {
 // match the taglist (or all posts if no taglist), paginated by the page number
 // by default will return only 25 at a time.
 // TODO add variable pagination (25, 50, 100 posts etc)
-app.post('/api/search', async (req: Request, res: Response) => {
-  const {body} = req
+app.get('/api/search', async (req: Request, res: Response) => {
+
+  const {query} = req
 
   const limit:number = 20 // TODO page size
-  const offset:number = (body.pageNumber)? (body.pageNumber - 1) * limit : 0
+  const offset:number = (query.pageNumber) ? (Number(query.pageNumber) - 1) * limit : 0
 
-  console.log(`Taglist searched: ${body.tags}`)
+  console.log(`Taglist searched: ${query.tags}`)
 
   try{
-    if(!body.tags){
+    if(!query.tags){
       // most recent 25 posts
       const posts = await Post.findAll({
         order: [['date_created', 'DESC']],
@@ -850,10 +856,12 @@ app.post('/api/search', async (req: Request, res: Response) => {
     }
 
     // search for posts with all tags by date
+    const taglist = query.tags.toString().split(',')
+
     const posts = await Post.findAll({
       where: {
         tags: {
-          [Op.contains]: body.tags,
+          [Op.contains]: taglist,
         }
       },
       order: [['date_created', 'DESC']],
