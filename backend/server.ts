@@ -9,7 +9,7 @@ import fs from 'fs'
 import Sharp from 'sharp'
 
 // sequelize imports for postgresql
-import { Sequelize } from 'sequelize-typescript'
+import { CreatedAt, Sequelize } from 'sequelize-typescript'
 import { Op } from '@sequelize/core';
 import User from './models/User.model'
 import Session from './models/Session.model'
@@ -821,7 +821,59 @@ app.post('/api/postImage', async (req: Request, res: Response) => {
 
 })
 
-app.post('/api/search')
+// Search api endpoint
+// Takes in a page # and optional taglist and returns a list of posts which
+// match the taglist (or all posts if no taglist), paginated by the page number
+// by default will return only 25 at a time.
+// TODO add variable pagination (25, 50, 100 posts etc)
+app.post('/api/search', async (req: Request, res: Response) => {
+  const {body} = req
+
+  const limit:number = 20 // TODO page size
+  const offset:number = (body.pageNumber)? (body.pageNumber - 1) * limit : 0
+
+  console.log(`Taglist searched: ${body.tags}`)
+
+  try{
+    if(!body.tags){
+      // most recent 25 posts
+      const posts = await Post.findAll({
+        order: [['date_created', 'DESC']],
+        limit,
+        offset
+      })
+
+      return res.status(200).json({
+        posts: posts,
+        error: null
+      })
+    }
+
+
+    // search for posts with all tags by date
+    const posts = await Post.findAll({
+      where: {
+        tags: {
+          [Op.contains]: body.tags,
+        }
+      },
+      order: [['date_created', 'DESC']],
+      limit,
+      offset
+    })
+
+    return res.status(200).json({
+      posts: posts,
+      error: null
+    })
+  }
+  catch(err){
+    return res.status(500).json({
+      posts: null,
+      error: 'Database error:' + err
+    })
+  }
+})
 
 app.post('/testFileUpload', async (req: Request, res: Response) => {
 
