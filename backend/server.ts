@@ -10,7 +10,7 @@ import Sharp from 'sharp'
 
 // sequelize imports for postgresql
 import { CreatedAt, Sequelize } from 'sequelize-typescript'
-import { Op } from '@sequelize/core';
+import { Op } from '@sequelize/core'
 import User from './models/User.model'
 import Session from './models/Session.model'
 import Timeout from './models/Timeout.model'
@@ -88,10 +88,10 @@ const check_user_ban = async (username: string,) => {
     where: { username: username }
   })
   if (!user) {
-    throw new Error("User not found");
+    throw new Error("User not found")
   }
-  const data = user.get({ plain: true });
-  return data.banned ? true : false;
+  const data = user.get({ plain: true })
+  return data.banned ? true : false
 }
 
 const check_user_timeout = async (username: string,) => {
@@ -100,32 +100,32 @@ const check_user_timeout = async (username: string,) => {
     where: { username: username}
   })
   if (!user) {
-    throw new Error("User not found");
+    throw new Error("User not found")
   }
   const data = user.get({ plain: true })
   //query timeout table for id
   const timeouts = await Timeout.findAll({
     attributes: ['start_on', 'length_min'],
     where: { user_id: data.id}
-  });
+  })
   //for each timeout, check if it is expired
-  let most_recent = new Date(0);
-  let most_recent_length = 0;
+  let most_recent = new Date(0)
+  let most_recent_length = 0
   timeouts.forEach(timeout => {
     if(timeout.dataValues.start_on > most_recent) {
-      most_recent = timeout.dataValues.start_on;
-      most_recent_length = timeout.dataValues.length_min;
+      most_recent = timeout.dataValues.start_on
+      most_recent_length = timeout.dataValues.length_min
     }
-  });
+  })
   //convert to unix time
-  let most_recent_unix = most_recent.getTime();
+  let most_recent_unix = most_recent.getTime()
   //add length in minutes
-  most_recent_unix += most_recent_length * 60000;
+  most_recent_unix += most_recent_length * 60000
   //compare to current time
   if(most_recent_unix > Date.now()) {
-    return true;
+    return true
   } else {
-    return false;
+    return false
   }
 
 }
@@ -244,12 +244,12 @@ const issue_JWT =  async (userid: number, session_id: string, length_days: numbe
     where : {id: userid}
   })
   if (!user) {
-    throw new Error("User not found");
+    throw new Error("User not found")
   }
-  const data = user.get({ plain: true });
+  const data = user.get({ plain: true })
   const token = jwt.sign({ userid: userid, session_id: session_id, role: data.role },
-  privateKey , { expiresIn: length_days + 'd', algorithm: "RS256" });
-  return token;
+  privateKey , { expiresIn: length_days + 'd', algorithm: "RS256" })
+  return token
 }
 
 const storeNewImage = async (imgFile: UploadedFile, imgID: bigint) => {
@@ -269,7 +269,7 @@ const storeNewImage = async (imgFile: UploadedFile, imgID: bigint) => {
       .png().toBuffer()
 
   } catch (err) {
-    console.error(err);
+    console.error(err)
     throw new Error("Error creating thumbnail:" + err)
   }
 
@@ -408,7 +408,7 @@ app.delete('/api/deleteImage', async (req: Request, res: Response) => {
     })
   }
 
-  let token;
+  let token
 
   try{
     token = await jwt.verify(params.token, pub)
@@ -579,10 +579,10 @@ app.post('/api/getPost', async (req: Request, res: Response) => {
 // login route
 // inputs: username: string, (optional) jwt: string, (optional bool) remembered: boolean
 app.post('/api/login', async (req: Request, res: Response) => {
-  const {body} = req;
+  const {body} = req
   if (body.jwt) {
-    let valid = await verify_JWT(JSON.parse(JSON.stringify(body.jwt)));
-    const payload = jwt.decode(body.jwt, {complete: true});
+    let valid = await verify_JWT(JSON.parse(JSON.stringify(body.jwt)))
+    const payload = jwt.decode(body.jwt, {complete: true})
     if(valid)
     {
       if(!body.username) {
@@ -591,17 +591,17 @@ app.post('/api/login', async (req: Request, res: Response) => {
           otp_required: false,
           session_id: null,
           error: "Username not provided"
-        });
+        })
       }
-      let ban =  await check_user_ban(body.username);
-      let timeout = await check_user_timeout(body.username);
+      let ban =  await check_user_ban(body.username)
+      let timeout = await check_user_timeout(body.username)
       if(ban) {
         return res.status(200).json({
           login: false,
           otp_required: false,
           session_id: null,
           error: "User is banned"
-        });
+        })
       }
       if(timeout) {
         return res.status(200).json({
@@ -609,14 +609,14 @@ app.post('/api/login', async (req: Request, res: Response) => {
           otp_required: false,
           session_id: null,
           error: "User is timed out"
-        });
+        })
       }
       return res.status(200).json({
         login: true,
         otp_required: false,
         session_id: payload.payload.session_id,
         error: "No error, JWT is valid"
-      });
+      })
     }
     else
     {
@@ -631,7 +631,7 @@ app.post('/api/login', async (req: Request, res: Response) => {
   // if no jwt included, new login, create a new session
   else
   {
-    const username = body.username;
+    const username = body.username
     if (!username) {
       return res.status(418).json({
         login: false,
@@ -640,8 +640,8 @@ app.post('/api/login', async (req: Request, res: Response) => {
         error: "Username not provided"
       })
     }
-    const ban =  await check_user_ban(username);
-    const timeout = await check_user_timeout(username);
+    const ban =  await check_user_ban(username)
+    const timeout = await check_user_timeout(username)
     if(ban) {
       return res.status(200).json({
         login: false,
@@ -656,7 +656,7 @@ app.post('/api/login', async (req: Request, res: Response) => {
         otp_required: false,
         session_id: null,
         error: "User is timed out"
-      });
+      })
     }
 
     const user = await User.findOne({
@@ -669,18 +669,18 @@ app.post('/api/login', async (req: Request, res: Response) => {
         otp_required: false,
         session_id: null,
         error: "User not found"
-      });
+      })
     }
     const data = user.get({ plain: true })
-    const session_id = await create_session(data.id, body.remembered);
+    const session_id = await create_session(data.id, body.remembered)
     return res.status(200).json({
       login: true,
       otp_required: true,
       session_id: session_id,
       error: "No error, OTP required"
-    });
+    })
   }
-});
+})
 
 // logout route
 // inputs: jwt
@@ -720,7 +720,7 @@ app.post('/api/postImage', async (req: Request, res: Response) => {
     return res.status(400).json({post_created: false, reason:"No JWT"})
   }
 
-  let token;
+  let token
 
   try{
     token = await jwt.verify(body.token, pub)
@@ -848,7 +848,6 @@ app.post('/api/search', async (req: Request, res: Response) => {
         error: null
       })
     }
-
 
     // search for posts with all tags by date
     const posts = await Post.findAll({
@@ -980,7 +979,7 @@ app.get('/testToken', async (req: Request, res: Response) => {
     })
   }
 
-  let token;
+  let token
   try{
     token = await jwt.verify(req.query.token, pub)
   }
