@@ -1,20 +1,12 @@
 <script>
-    import "bootstrap/dist/css/bootstrap.min.css";
-    import LogInButton from "$lib/LogInButton/+page.svelte";
+    import "bootstrap/dist/css/bootstrap.min.css"
+    import LogInButton from "$lib/login-button.svelte"
+    import SearchBar from "$lib/search-bar.svelte"
     import {
         Button,
-        Modal,
-        ModalBody,
-        ModalFooter,
-        ModalHeader,
         Container,
         Row,
         Col,
-        Image,
-        Figure,
-        Input,
-        InputGroup,
-        InputGroupText,
     } from "sveltestrap";
 </script>
 
@@ -43,11 +35,7 @@
 <div class="searchbar">
     <Container>
         <Row>
-            <div class="col-9 mx-auto my-2 text-center">
-                <InputGroup>
-                    <Input placeholder="Search" />
-                </InputGroup>
-            </div>
+          <SearchBar />
         </Row>
     </Container>
 </div>

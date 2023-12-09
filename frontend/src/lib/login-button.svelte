@@ -1,6 +1,6 @@
 <script>
-    import SignUpModal from "$lib/VerifyModal/+page.svelte";
-    import OTPModal from "$lib/OTPModal/+page.svelte";
+    import SignUpModal from "$lib/verify-modal.svelte";
+    import OTPModal from "$lib/otp-modal.svelte";
     import { onMount } from "svelte";
     import {
         Modal,
@@ -61,7 +61,7 @@
             // OTP is required
             otpRequired = true;
             sessionuuid = data.session_id;
-        } 
+        }
         else {
             alert("Login Failed! \n Error: " + data.error)
         }
@@ -90,7 +90,7 @@
             }
             alert("Login Successful!");
             toggle();
-        } 
+        }
         else {
             // Login failed
             alert("Login Failed! Please try again.");
@@ -152,7 +152,7 @@
                 </label>
             </ModalBody>
             <ModalFooter>
-                <SignUpModal/> 
+                <SignUpModal/>
                 <form on:submit={handleFormSubmit}>
                     <Button color="warning" type="submit">Login</Button>
                 </form>
