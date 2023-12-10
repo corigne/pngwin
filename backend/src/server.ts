@@ -9,7 +9,7 @@ import fs from 'fs'
 import Sharp from 'sharp'
 
 // sequelize imports for postgresql
-import { CreatedAt, Sequelize } from 'sequelize-typescript'
+import { Sequelize } from 'sequelize-typescript'
 import { Op } from '@sequelize/core'
 import User from './models/User.model'
 import Session from './models/Session.model'
@@ -49,6 +49,12 @@ var transporter = createTransport({
 })
 // Email-templates Connected To Nodemailer
 const email_message = new Email({
+  views: {
+    root: 'emails/otp/',
+    options: {
+      extension: 'pug'
+    }
+  },
   message: {
     from: process.env.GMAIL
   },
@@ -143,7 +149,7 @@ const create_session = async (in_user_id: number, is_remembered?: boolean) => {
   const user_id_exists: User|null = (await User.findOne({where: {id: in_user_id}}))
   //console.log(user_id_exists)
   if ( !user_id_exists ) {
-    throw new Error("provided user_id doesn't exist")
+    throw new Error("Provided user_id doesn't exist")
   }
 
   const email = user_id_exists.dataValues.email
@@ -189,8 +195,9 @@ const create_session = async (in_user_id: number, is_remembered?: boolean) => {
     })
   }
   catch(err: any){
+    console.log(err.toString())
     await Session.destroy({where: {session_id: new_session_id}})
-    throw new Error("Unable to send verification email: " + err.toString())
+    throw new Error("Unable to send verification email.")
   }
   // only runs if email sent successfully
   return new_session_id
@@ -746,13 +753,28 @@ app.post('/api/login', async (req: Request, res: Response) => {
       })
     }
     const data = user.get({ plain: true })
-    const session_id = await create_session(data.id, body.remembered)
-    return res.status(200).json({
-      login: true,
-      otp_required: true,
-      session_id: session_id,
-      error: "No error, OTP required"
-    })
+
+    try{
+      return await create_session(data.id, body.remembered)
+      .then((session_id) => {
+        return res.status(200).json({
+          login: true,
+          otp_required: true,
+          session_id: session_id,
+          error: "No error, OTP required"
+        })
+      })
+    }
+    catch(err: any){
+      console.error("Unable to create session:", err)
+      return res.status(500).json({
+        login: false,
+        otp_required: false,
+        session_id: null,
+        error: err.toString()
+      })
+    }
+
   }
 })
 
