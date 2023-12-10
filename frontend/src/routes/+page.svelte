@@ -1,6 +1,5 @@
 <script>
     import "bootstrap/dist/css/bootstrap.min.css"
-    import LogInButton from "$lib/login-button.svelte"
     import SearchBar from "$lib/search-bar.svelte"
     import {
         Button,

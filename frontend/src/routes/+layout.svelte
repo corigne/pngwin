@@ -1,5 +1,6 @@
 <script>
   import '../styles/global.css'
+    import "bootstrap/dist/css/bootstrap.min.css"
   import LogInButton from '../lib/login-button.svelte'
   import {
     Container,
@@ -31,8 +32,4 @@
 </footer>
 
 <style>
-  img.icon {
-      width: 2em;
-      background-color: #949494;
-  }
 </style>

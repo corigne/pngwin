@@ -4,6 +4,7 @@ body {
 
 .nav {
   background-color: #dddddd;
+  border-radius: 1ex;
   display: flex;
   width: 80%;
   margin: auto;
@@ -15,5 +16,4 @@ body {
 img.icon {
     width: 2em;
     border: 1ex;
-    border-radius: 5q;
 }
