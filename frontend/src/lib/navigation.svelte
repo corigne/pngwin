@@ -35,7 +35,7 @@
   }))
 </script>
 
-{#if !isRoot}
+{#if ($page.url.pathname !== "/")}
 <div class="nav">
   <Container fluid>
     <Navbar>

@@ -10,6 +10,7 @@ body {
   margin: auto;
   margin-top: 1ex;
   flex-direction: row;
+  gap: 1ex;
 }
 
 
