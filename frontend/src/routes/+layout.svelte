@@ -3,20 +3,22 @@
   import LogInButton from '../lib/login-button.svelte'
   import {
     Container,
-    Col,
-    Row
+    Navbar,
+    NavbarBrand,
+    NavItem
   } from 'sveltestrap'
 </script>
 
 <header>
-  <div class="Login_btn">
-      <Container fluid>
-          <Row>
-              <Col class="text-end">
-                  <LogInButton />
-              </Col>
-          </Row>
-      </Container>
+  <div class="nav">
+    <Container fluid>
+      <Navbar>
+        <NavbarBrand><img class="icon" href="/" src="pngwin-modified.png" alt="png.win mascot"/></NavbarBrand>
+        <NavItem>
+          <LogInButton />
+        </NavItem>
+      </Navbar>
+    </Container>
   </div>
 </header>
 
@@ -29,4 +31,8 @@
 </footer>
 
 <style>
+  img.icon {
+      width: 2em;
+      background-color: #949494;
+  }
 </style>
