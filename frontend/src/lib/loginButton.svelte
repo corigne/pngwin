@@ -83,10 +83,14 @@
             if (rememberMe) {
                 //set cookie with jwt token with expiration of 30 days
                 document.cookie = `jwt=${data.token}; expires=${new Date(Date.now() + 2592000000)}; path=/`;
+                //set cookie with username with expiration of 30 days
+                document.cookie = `username=${username}; expires=${new Date(Date.now() + 2592000000)}; path=/`;
             }
             else{
                 //set cookie with jwt token with expiration of 1 day
                 document.cookie = `jwt=${data.token}; expires=${new Date(Date.now() + 86400000)}; path=/`;
+                //set cookie with username with expiration of 1 day
+                document.cookie = `username=${username}; expires=${new Date(Date.now() + 86400000)}; path=/`;
             }
             alert("Login Successful!");
             toggle();

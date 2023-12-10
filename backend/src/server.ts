@@ -1341,6 +1341,49 @@ app.post('/api/vote', verifyToken, async (req: Request, res: Response) => {
   })
 })
 
+//api endpoint for getting user profile information
+//input: jwt
+//output: user profile information
+app.get('/api/userProfile', verifyToken, async (req: Request, res: Response) => {
+
+  if(!req.token) {
+    return res.status(400).json({
+      success: false,
+      error: "No token in request body."
+    })
+  }
+
+  let valid = await jwt.verify(req.token, pub)
+
+  if(!valid) {
+    return res.status(403).json({
+      success: false,
+      error: "No token in request body."
+    })
+  }
+
+  const userid = jwt.decode(req.token).userid
+
+  console.log(jwt.decode(req.token))
+  console.log(userid)
+
+  const user = await User.findByPk(userid)
+
+  if(!user){
+    return res.status(500).json({
+      success: false,
+      error: `User with id:${userid} was not found.`
+    })
+  }
+
+  return res.status(200).json({
+    success: true,
+    username : user.get('username'),
+    email : user.get('email'),
+    user_id : user.get('id'),
+  })
+})
+
 app.get('/.well-known/jwks.json', (res: Response) => {
   try {
     const modulus = process.env.RSA_KEY_N
