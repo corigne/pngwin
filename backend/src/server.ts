@@ -50,10 +50,7 @@ var transporter = createTransport({
 // Email-templates Connected To Nodemailer
 const email_message = new Email({
   views: {
-    root: 'emails/otp/',
-    options: {
-      extension: 'pug'
-    }
+    root: 'src/emails/',
   },
   message: {
     from: process.env.GMAIL
