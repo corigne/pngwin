@@ -11,7 +11,7 @@
     import { onMount } from "svelte";
 
     onMount(() => {
-      search_tags.set([])
+      search_tags.set(null)
     })
 </script>
 

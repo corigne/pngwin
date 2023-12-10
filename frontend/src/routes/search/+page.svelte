@@ -1,49 +1,60 @@
 <script>
-  import { search_tags } from '$lib/stores.js'
   import { onDestroy, onMount } from 'svelte'
   import { Button, Card, CardBody, CardFooter, CardImg, Col, Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Label, Nav, NavItem, NavLink, Navbar, Row } from 'sveltestrap'
 
-  let unsub = false
+  import { search_tags } from '$lib/stores.js'
+
   let data = {}
   let posts = []
   let sortBy = "Date"
   let sortOrder = "desc"
 
-  $: sortOrder, sortBy
+  // placeholder for the unsubscribe callback
+  let subscription_tags
+
+  $: sortOrder, sortBy, search_tags
   $: sortedPosts = [...posts]
 
-  const subscribe_tags = search_tags.subscribe( async (value) => {
-      console.log("Triggered search_tags callback.")
-
-      if(unsub) {
-        console.log("Unsubscribing from search_tags")
-        return unsubscribe()
-      }
-
-      if(value) {
-        data = await fetch(`http://localhost:3000/api/search?tags=${value}`)
-        .then((res) => {
-            console.log(res)
-            return res.json()
-            })
-        posts = data.posts
-
-      } else {
-        data = await fetch(`http://localhost:3000/api/search?tags=`)
-        .then((res) => {
-            return res.json()
-            })
-        posts = data.posts
-      }
-
-      // await Promise.all(posts.map(fetchImage))
-      await Promise.all(posts.map((post) => {
-            console.log(`Fetching image for post ID: ${post.id}`)
-            return fetchImage(post)
-            }))
-
-      sortPosts()
+  onMount(() => {
+    subscription_tags = search_tags.subscribe(update_search)
+    if(!$search_tags){
+      search_tags.set("")
+    }
   })
+
+  onDestroy(() => {
+    if(subscription_tags){
+      subscription_tags()
+    }
+    console.log('unsubscribe to search_tags called')
+  })
+
+
+  const update_search = async (value) => {
+    console.log("subscribe_tags callback triggered with value:", value);
+
+    const tag_str = [... new Set(value.split(/[,\s]/).filter(Boolean))].join(',')
+    console.log(tag_str)
+
+    if(tag_str) {
+      data = await fetch(`http://localhost:3000/api/search?tags=${tag_str}`)
+      .then((res) => res.json())
+      posts = data.posts
+
+    } else {
+      data = await fetch(`http://localhost:3000/api/search?tags=`)
+      .then((res) => res.json())
+      posts = data.posts
+    }
+
+    // await Promise.all(posts.map(fetchImage))
+    await Promise.all(posts.map((post) => {
+          console.log(`Fetching image for post ID: ${post.id}`)
+          return fetchImage(post)
+          }))
+
+    sortPosts()
+  }
 
   const fetchImage = async (post) => {
     try{
@@ -112,16 +123,11 @@
     sortPosts()
   }
 
-  onMount(subscribe_tags)
-  onDestroy(() => {
-    unsub = true
-  })
-
 </script>
 
 <header>
 
-<Nav>
+<Nav class="nav">
 <Navbar>
     <NavItem>
       <Dropdown nav inNavbar>
@@ -163,6 +169,7 @@
       {/each}
     </Row>
   {:else}
+
     No results!
   {/if}
 </main>
