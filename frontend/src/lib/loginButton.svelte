@@ -1,6 +1,6 @@
 <script>
-    import SignUpModal from "$lib/verify-modal.svelte";
-    import OTPModal from "$lib/otp-modal.svelte";
+    import SignUpModal from "$lib/verifyModal.svelte";
+    import OTPModal from "$lib/otpModal.svelte";
     import { onMount } from "svelte";
     import {
         Modal,

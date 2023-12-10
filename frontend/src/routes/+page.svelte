@@ -1,12 +1,18 @@
 <script>
-    import "bootstrap/dist/css/bootstrap.min.css"
-    import SearchBar from "$lib/search-bar.svelte"
+    import SearchBar from "$lib/searchBar.svelte"
     import {
         Button,
         Container,
         Row,
         Col,
     } from "sveltestrap";
+
+    import { search_tags } from '$lib/stores.js'
+    import { onMount } from "svelte";
+
+    onMount(() => {
+      search_tags.set([])
+    })
 </script>
 
 <div class="logo py-0">
@@ -14,13 +20,14 @@
         <Row>
             <Col class="text-center">
                 <figure class="logo">
-                    <img src="/pngwin-modified.png" alt="pngwin logo" />
+                    <img src="/pngwin-modified.png" alt="pngwin logo" class="logo" />
                     <figcaption class="logo_title">PNG.WIN</figcaption>
                 </figure>
             </Col>
         </Row>
     </Container>
 </div>
+
 <div class="searchbar">
     <Container>
         <Row>
@@ -28,54 +35,23 @@
         </Row>
     </Container>
 </div>
+
 <div class="buttons">
     <Container>
         <Row>
-            <div class="col-6 mx-auto my-auto py-2 text-center">
-                <div class="d-inline px-2">
+            <div class="col-6 mx-auto my-auto py-2 text-center mb-3">
+                <div class="d-inline px-2 mb-2">
                     <Button href="/images" size="lg" color="warning"
                         >Images</Button
                     >
                 </div>
-                <div class="d-inline px-2">
+                <div class="d-inline px-2 mb-2">
                     <Button size="lg" color="warning">Collections</Button>
                 </div>
-                <div class="d-inline px-2">
+                <div class="d-inline px-2 mb-2">
                     <Button size="lg" color="warning">Random</Button>
                 </div>
             </div>
         </Row>
     </Container>
-
-    <Container>
-        <Row>
-            <div class="col-6 mx-auto my-2 text-center">
-                <div class="d-inline px-2">
-                    <Button color="warning">Help</Button>
-                </div>
-                <div class="d-inline px-2">
-                    <Button color="warning">Settings</Button>
-                </div>
-            </div>
-        </Row>
-    </Container>
 </div>
-
-<style>
-    img {
-        width: 30%;
-        height: 30%;
-    }
-    figure.logo {
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-        width: 50%;
-        text-align: center;
-    }
-    .logo_title {
-        display: block;
-        font-family: Krungthep;
-        font-size: 72px;
-    }
-</style>

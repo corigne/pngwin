@@ -1,0 +1,174 @@
+<script>
+  import { search_tags } from '$lib/stores.js'
+  import { onDestroy, onMount } from 'svelte'
+  import { Button, Card, CardBody, CardFooter, CardImg, Col, Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Label, Nav, NavItem, NavLink, Navbar, Row } from 'sveltestrap'
+
+  let unsub = false
+  let data = {}
+  let posts = []
+  let sortBy = "Date"
+  let sortOrder = "desc"
+
+  $: sortOrder, sortBy
+  $: sortedPosts = [...posts]
+
+  const sub = search_tags.subscribe( async (value) => {
+
+      console.log(`Value: ${value}`)
+
+      if(unsub) { return unsubscribe() }
+
+      if(value) {
+        data = await fetch(`http://localhost:3000/api/search?tags=${value}`)
+        .then((res) => {
+            console.log(res)
+            return res.json()
+            })
+        posts = data.posts
+      }
+
+      else{
+
+        data = await fetch(`http://localhost:3000/api/search?tags=`)
+        .then((res) => {
+            return res.json()
+            })
+        posts = data.posts
+      }
+
+      // await Promise.all(posts.map(fetchImage))
+      await Promise.all(posts.map((post) => {
+            console.log(`Fetching image for post ID: ${post.id}`)
+            return fetchImage(post)
+            }))
+      sortPosts()
+  })
+
+  const fetchImage = async (post) => {
+    try{
+      const res = await fetch(`http://localhost:3000/api/getImage?imageID=${post.id}`)
+        .then((res) => res.json())
+      if (res.buffer) {
+        const buff = Uint8Array.from(res.buffer.data)
+        const uri = await convertBuffer2BlobURL(buff)
+
+        const newPost = { ...post, uri: uri }
+        posts = [...posts.filter(p => p.id !== newPost.id), newPost]
+      }
+    }
+    catch(err){
+      console.error(`Error fetching image for post:`, err)
+    }
+  }
+
+  const convertBuffer2BlobURL = async (imgBuffer) => {
+    try{
+      const blob = new Blob([imgBuffer], {type: 'image/png'})
+      const blobURL = URL.createObjectURL(blob)
+      return blobURL
+    }
+    catch(err){
+      console.error("Error converting to blob: ", err)
+    }
+  }
+
+  const sortPosts = () => {
+
+    if(sortBy === "Date"){
+      posts = posts.sort((a, b) => {
+        if (sortOrder === 'asc') {
+        return new Date(a.date_created) - new Date(b.date_created)
+        } else {
+        return new Date(b.date_created) - new Date(a.date_created)
+        }
+      })
+    }
+
+    if(sortBy === "Score"){
+      posts = posts.sort((a, b) => {
+        if (sortOrder === 'asc') {
+        return a.score - b.score
+        } else {
+        return b.score - a.score
+        }
+      })
+    }
+  }
+
+  const toggleSortOrder = () => {
+    // Toggle between 'asc' and 'desc'
+    sortOrder = (sortOrder === 'asc') ? 'desc' : 'asc'
+
+    // Re-sort posts based on the current sort order and field
+    sortPosts()
+  }
+
+  const changeSortBy = (field) => {
+    sortBy = field
+    console.log(sortBy)
+
+    // Re-sort posts based on the current sort order and field
+    sortPosts()
+  }
+
+  onMount(sub)
+  onDestroy(() => {
+    unsub = true
+  })
+
+</script>
+
+<header>
+
+<Nav>
+<Navbar>
+    <NavItem>
+      <Dropdown nav inNavbar>
+        <DropdownToggle nav caret>
+          Sort By: {sortBy}
+        </DropdownToggle>
+        <DropdownMenu right>
+          <DropdownItem on:click={() => changeSortBy('Date')}>Date</DropdownItem>
+          <DropdownItem on:click={() => changeSortBy('Score')}>Score</DropdownItem>
+        </DropdownMenu>
+      </Dropdown>
+    </NavItem>
+    <NavItem>
+      <NavLink>
+        <Button color="warning" on:click={toggleSortOrder}>
+          {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+        </Button>
+      </NavLink>
+    </NavItem>
+</Navbar>
+</Nav>
+</header>
+
+
+<main >
+  {#if sortedPosts.length > 0}
+    <Row class="card-row">
+      {#each sortedPosts as post}
+        <Col sm="12" md="6" lg="4" xl="3" xxl="2" class="mb-3" >
+          <div class="card-container">
+          <Card>
+            <CardImg class="card-img" src={post.uri} alt={`Image tags: ${post.tags}`}/>
+            <CardBody >
+              <CardFooter class="card-footer">ID:{post.id} , Score: {post.score}</CardFooter>
+            </CardBody>
+          </Card>
+          </div>
+        </Col>
+      {/each}
+    </Row>
+  {:else}
+    No results!
+  {/if}
+</main>
+
+<style>
+  header {
+    margin-bottom: 1em
+  }
+
+</style>

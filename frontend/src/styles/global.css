@@ -1,19 +1,75 @@
 body {
   background-color: #949494;
+  margin: 2%;
 }
 
 .nav {
-  background-color: #dddddd;
+  background-color: #f0f0f0;
   border-radius: 1ex;
   display: flex;
-  width: 80%;
   margin: auto;
-  margin-top: 1em;
+  margin-top: 1ex;
   flex-direction: row;
-  padding: 1em, 0em;
 }
 
+
 img.icon {
-    width: 2em;
-    border: 1ex;
+  width: 2.5em;
+}
+
+img.logo {
+  width: 30%;
+  height: 30%;
+}
+figure.logo {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
+  text-align: center;
+}
+.logo_title {
+  display: block;
+  font-family: Krungthep;
+  font-size: 72px;
+}
+
+.card-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: start;
+}
+
+.card-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 0;
+}
+
+/* Default styles for all screen sizes */
+/* Styles for screens smaller than 576px (extra small) */
+@media (max-width: 575.98px) {
+  /* Your styles for extra small screens */
+}
+
+/* Styles for screens between 576px and 767.98px (small) */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  /* Your styles for small screens */
+}
+
+/* Styles for screens between 768px and 991.98px (medium) */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  /* Your styles for medium screens */
+}
+
+/* Styles for screens between 992px and 1199.98px (large) */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  /* Your styles for large screens */
+}
+
+/* Styles for screens 1200px and larger (extra large) */
+@media (min-width: 1200px) {
+  /* Your styles for extra large screens */
 }

@@ -1,22 +1,6 @@
 <script lang="js">
-    import "bootstrap/dist/css/bootstrap.min.css";
     import {
         Button,
-        Modal,
-        ModalBody,
-        ModalFooter,
-        ModalHeader,
-        Container,
-        Row,
-        Col,
-        Image,
-        Figure,
-        Input,
-        InputGroup,
-        InputGroupText,
-        Form,
-        FormGroup,
-        FormText,
     } from "sveltestrap";
     let input;
     let container;
@@ -59,7 +43,7 @@
         <Button size="lg">Settings</Button>
     </div>
 </div>
- 
+
 
 
 
