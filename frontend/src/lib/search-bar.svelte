@@ -9,11 +9,11 @@
 
   let tags = ""
 
-  const search = () => {
+  const search = async () => {
     if(tags){
       tags.split(/[\s,]/)
       console.log(tags)
-      goto('/images')
+      await goto('/images')
     }
   }
 

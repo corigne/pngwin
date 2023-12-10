@@ -10,16 +10,6 @@
     } from "sveltestrap";
 </script>
 
-<div class="Login_btn">
-    <Container fluid>
-        <Row>
-            <Col class="text-end">
-                <LogInButton />
-            </Col>
-        </Row>
-    </Container>
-</div>
-
 <div class="logo py-0">
     <Container>
         <Row>
@@ -73,9 +63,6 @@
 </div>
 
 <style>
-    :global(body) {
-        background-color: #949494;
-    }
     img {
         width: 30%;
         height: 30%;
