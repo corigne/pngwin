@@ -9,11 +9,9 @@
   import { page } from '$app/stores'
 
   // Check if the current page is the root page
-  let isRoot = $page.url.pathname === "/"
-  console.log(isRoot)
 </script>
 
-{#if !isRoot}
+{#if ($page.url.pathname !== "/")}
 <div class="nav">
   <Container fluid>
     <Navbar>

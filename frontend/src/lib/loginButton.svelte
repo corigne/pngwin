@@ -42,8 +42,9 @@
                 return;
             }
             else {
-                alert("Login Failed! \n Error: " + data.error)
+                alert("Login Failed! \n" + data.error)
             }
+            if(data.login)
             toggle();
             return;
         }
@@ -63,7 +64,7 @@
             sessionuuid = data.session_id;
         }
         else {
-            alert("Login Failed! \n Error: " + data.error)
+            alert("Login Failed! \n" + data.error)
         }
     }
 

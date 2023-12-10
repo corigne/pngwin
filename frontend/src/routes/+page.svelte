@@ -41,9 +41,7 @@
         <Row>
             <div class="col-6 mx-auto my-auto py-2 text-center mb-3">
                 <div class="d-inline px-2 mb-2">
-                    <Button href="/images" size="lg" color="warning"
-                        >Images</Button
-                    >
+                    <Button href="/search?tags=" size="lg" color="warning">Images</Button>
                 </div>
                 <div class="d-inline px-2 mb-2">
                     <Button size="lg" color="warning">Collections</Button>

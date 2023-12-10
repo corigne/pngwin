@@ -14,8 +14,6 @@
 
   const sub = search_tags.subscribe( async (value) => {
 
-      console.log(`Value: ${value}`)
-
       if(unsub) { return unsubscribe() }
 
       if(value) {
@@ -25,9 +23,7 @@
             return res.json()
             })
         posts = data.posts
-      }
-
-      else{
+      } else {
 
         data = await fetch(`http://localhost:3000/api/search?tags=`)
         .then((res) => {
@@ -41,6 +37,7 @@
             console.log(`Fetching image for post ID: ${post.id}`)
             return fetchImage(post)
             }))
+
       sortPosts()
   })
 
@@ -154,7 +151,7 @@
           <Card>
             <CardImg class="card-img" src={post.uri} alt={`Image tags: ${post.tags}`}/>
             <CardBody >
-              <CardFooter class="card-footer">ID:{post.id} , Score: {post.score}</CardFooter>
+              <CardFooter class="card-footer">ID:{post.id} , Score: {post.score}, Tags: {post.tags}</CardFooter>
             </CardBody>
           </Card>
           </div>
