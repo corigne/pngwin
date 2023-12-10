@@ -546,14 +546,14 @@ app.get('/api/getImage', async (req: Request, res: Response) => {
   catch(err){
     res.status(500).json({
       success: false,
-      blob: null,
+      buffer: null,
       error: "FS Read error: " + err
     })
   }
 
   return res.status(200).json({
     success: true,
-    blob: image_buffer,
+    buffer: image_buffer,
     error: null
   })
 
@@ -568,7 +568,7 @@ app.get('/api/getPost', async (req: Request, res: Response) => {
   if (!query.imageID) {
     return res.status(418).json({
       success: false,
-      buffer: null,
+      post: null,
       error: "No imageID provided."
     })
   }
@@ -582,14 +582,14 @@ app.get('/api/getPost', async (req: Request, res: Response) => {
   if(!post){
     return res.status(500).json({
       success: false,
-      image: null,
+      post: null,
       error: `Image with id:${imageID} not found.`
     })
   }
 
   return res.status(200).json({
     success: true,
-    image: post,
+    post: post,
     error: null
   })
 })
