@@ -28,13 +28,11 @@
     </Container>
 </div>
 
-<div class="searchbar">
-    <Container>
-        <Row>
-          <SearchBar />
-        </Row>
-    </Container>
-</div>
+<Container fluid>
+  <div class="main-search">
+    <SearchBar />
+  </div>
+</Container>
 
 <div class="buttons">
     <Container>
@@ -53,3 +51,6 @@
         </Row>
     </Container>
 </div>
+
+<style>
+</style>

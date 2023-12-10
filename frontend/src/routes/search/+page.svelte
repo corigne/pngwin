@@ -12,9 +12,13 @@
   $: sortOrder, sortBy
   $: sortedPosts = [...posts]
 
-  const sub = search_tags.subscribe( async (value) => {
+  const subscribe_tags = search_tags.subscribe( async (value) => {
+      console.log("Triggered search_tags callback.")
 
-      if(unsub) { return unsubscribe() }
+      if(unsub) {
+        console.log("Unsubscribing from search_tags")
+        return unsubscribe()
+      }
 
       if(value) {
         data = await fetch(`http://localhost:3000/api/search?tags=${value}`)
@@ -23,8 +27,8 @@
             return res.json()
             })
         posts = data.posts
-      } else {
 
+      } else {
         data = await fetch(`http://localhost:3000/api/search?tags=`)
         .then((res) => {
             return res.json()
@@ -108,7 +112,7 @@
     sortPosts()
   }
 
-  onMount(sub)
+  onMount(subscribe_tags)
   onDestroy(() => {
     unsub = true
   })
