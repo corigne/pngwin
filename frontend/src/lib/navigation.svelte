@@ -14,6 +14,7 @@
   import SearchBar from './searchBar.svelte'
   import { page } from '$app/stores'
   import { onMount } from 'svelte';
+  import { logged_in } from '$lib/stores.js'
 
   const handleResize = () => {
     // Set isOpen to true when the window expands beyond a certain width
@@ -33,8 +34,7 @@
     };
   });
 
-  let isOpen = true
-  // Check if the current page is the root page
+  let isOpen = true;
 </script>
 
 {#if ($page.url.pathname !== "/")}
@@ -65,9 +65,18 @@
             <NavItem>
               <NavLink >Settings</NavLink>
             </NavItem>
-            <NavItem>
-              <LogInButton />
-            </NavItem>
+            {#if ($logged_in)}
+              <NavItem>
+                <NavLink href="/profile" color="warning">Profile</NavLink>
+              </NavItem>
+              <NavItem>
+                <NavLink color="warning">Logout</NavLink>
+              </NavItem>
+            {:else}
+              <NavItem>
+                <LogInButton/>
+              </NavItem>
+            {/if}
         </Nav>
       </Collapse>
     </Navbar>
@@ -76,7 +85,12 @@
 {:else}
   <Navbar>
       <div class="right-buttons">
-        <LogInButton/>
+        {#if (!$logged_in)}
+          <LogInButton/>
+        {:else}
+          <Button href="/profile" color="warning">Profile</Button>
+          <Button color="warning">Logout</Button>
+        {/if}
         <Button color="warning">Help</Button>
       </div>
   </Navbar>
