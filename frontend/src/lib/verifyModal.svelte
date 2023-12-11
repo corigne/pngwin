@@ -76,9 +76,9 @@
 </script>
 
 <div class="VerifyModal">
-    <Button class="verify-user" color="warning" on:click={verifyToggle}
-        >Sign Up</Button
-    >
+    <Button class="verify-user" color="warning" on:click={verifyToggle}>
+      Sign Up
+    </Button>
     <Modal isOpen={verifyopen} backdrop={false} {verifyToggle}>
         {#if usernameOpen}
         <ModalHeader {verifyToggle}>Verify Username</ModalHeader>

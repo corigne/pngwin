@@ -10,44 +10,71 @@
         Button,
         Input,
         InputGroup,
+        Form,
     } from "sveltestrap";
+    import { logged_in, user } from '$lib/stores'
+    import { jwtDecode } from 'jwt-decode'
 
     let open = false;
     let username = '';
     let inputField;
     let rememberMe = false;
-    let loginSuccess = false;
     let otpRequired = false;
-    let otpOpen = false;
     let otp = '';
     let sessionuuid = '';
 
     const toggle = () => (open = !open);
-    const otpToggle = () => (otpOpen = !otpOpen);
 
-    const login = async () => {
+    const automaticLogin = async () => {
         //check if cookie exists and await fetch login using jwt token
         if (document.cookie.split(';').some((item) => item.trim().startsWith('jwt='))) {
-            const res = await fetch('http://localhost:3000/api/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username: username, jwt: document.cookie.split(';').find((item) => item.trim().startsWith('jwt=')).split('=')[1] })
-            });
+            const jwt = document.cookie.split(';').find((t) => t.trim().startsWith('jwt=')).split('=')[1]
+            const { userid, role, exp } = jwtDecode(jwt)
+
+            // expire token if exp passed, no fetch req
+            if (Date.now() >= exp * 1000) {
+              console.log("Token expired, logging you out.")
+              handleLogout()
+              document.cookie = ""
+              logged_in.set(false)
+            }
+
+            const gotName = await fetch(`http://localhost:3000/api/userName?userID=${userid}`)
+            const { username } = await gotName.json()
+
+            if(!username)
+              return alert("Auto-login failed, please try logging in manually.")
+
+            const res = await fetch('http://localhost:3000/api/login',
+                {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                username: username,
+                jwt: jwt
+                })
+              })
             const data = await res.json();
+
             if (data.login) {
-                alert("Login Successful!");
-                toggle();
+                logged_in.set(true)
+                user.set({
+                  name: username,
+                  id: userid,
+                  role: role
+                })
+                console.log($user)
                 return;
             }
-            else {
-                alert("Login Failed! \n" + data.error)
-            }
-            if(data.login)
-            toggle();
-            return;
         }
+
+        console.log("Unable to log in automatically, opening login modal.")
+        toggle()
+    }
+
+    const manualLogin = async () => {
         const res = await fetch('http://localhost:3000/api/login', {
             method: 'POST',
             headers: {
@@ -64,7 +91,7 @@
             sessionuuid = data.session_id;
         }
         else {
-            alert("Login Failed! \n" + data.error)
+            alert("Login failed, please try again.\n" + data.error)
         }
     }
 
@@ -84,16 +111,19 @@
             if (rememberMe) {
                 //set cookie with jwt token with expiration of 30 days
                 document.cookie = `jwt=${data.token}; expires=${new Date(Date.now() + 2592000000)}; path=/`;
-                //set cookie with username with expiration of 30 days
-                document.cookie = `username=${username}; expires=${new Date(Date.now() + 2592000000)}; path=/`;
             }
             else{
                 //set cookie with jwt token with expiration of 1 day
                 document.cookie = `jwt=${data.token}; expires=${new Date(Date.now() + 86400000)}; path=/`;
-                //set cookie with username with expiration of 1 day
-                document.cookie = `username=${username}; expires=${new Date(Date.now() + 86400000)}; path=/`;
             }
-            alert("Login Successful!");
+            const { userid, role } = jwtDecode(data.token)
+            logged_in.set(true)
+            user.set({
+              name: username,
+              id: userid,
+              role: role
+            })
+            console.log($user)
             toggle();
         }
         else {
@@ -104,7 +134,7 @@
 
     const handleFormSubmit = async (event) => {
         event.preventDefault();
-        await login();
+        await manualLogin();
     }
     const handleOTPSubmit = async (event) => {
         event.preventDefault();
@@ -120,49 +150,49 @@
     });
 </script>
 
-<Button class="login" color="warning" on:click={toggle}>Login</Button>
+<Button class="login" color="warning" on:click={automaticLogin}>Login</Button>
 <div class="LogInModal">
     {#if otpRequired}
     <Modal isOpen={open} backdrop = {false} toggle>
-        <ModalHeader {toggle}>Enter OTP</ModalHeader>
-        <ModalBody>
-          <h6>OTP</h6>
-          <InputGroup>
-            <Input bind:value={otp} placeholder= "Enter OTP" />
-          </InputGroup>
-        </ModalBody>
-        <ModalFooter>
-            <form on:submit={handleOTPSubmit}>
-                <Button color="primary" type="submit">
-                Submit
-                </Button>
-            </form>
-          <Button color="secondary" on:click={toggle}>
-            Cancel
-          </Button>
-        </ModalFooter>
+        <Form on:submit={handleOTPSubmit}>
+          <ModalHeader {toggle}>Enter OTP</ModalHeader>
+          <ModalBody>
+            <h6>OTP</h6>
+            <InputGroup>
+              <Input bind:value={otp} placeholder= "Enter OTP" />
+            </InputGroup>
+          </ModalBody>
+          <ModalFooter>
+            <Button color="primary" type="submit">
+            Submit
+            </Button>
+            <Button color="secondary" on:click={toggle}>
+              Cancel
+            </Button>
+          </ModalFooter>
+        </Form>
       </Modal>
     {:else}
         <Modal isOpen={open} backdrop={false} {toggle}>
-            <ModalHeader {toggle}>Login</ModalHeader>
-            <ModalBody>
-                <h6>Username</h6>
-                <InputGroup>
-                    <Input bind:value={username} placeholder="Ex. _bbygworlpngwin" />
-                </InputGroup>
+              <ModalHeader {toggle}>Login</ModalHeader>
+              <ModalBody>
+                  <Form on:submit={handleFormSubmit}>
+                      <h6>Username</h6>
+                      <InputGroup>
+                          <Input bind:value={username} placeholder="Ex. _bbygworlpngwin" />
+                      </InputGroup>
 
-                <label>
-                    <input type="checkbox" bind:checked={rememberMe} />
-                    Remember Me
-                </label>
-            </ModalBody>
-            <ModalFooter>
-                <SignUpModal/>
-                <form on:submit={handleFormSubmit}>
-                    <Button color="warning" type="submit">Login</Button>
-                </form>
-                <Button color="secondary" on:click={toggle}>Cancel</Button>
-            </ModalFooter>
+                      <label>
+                          <input type="checkbox" bind:checked={rememberMe} />
+                          Remember Me
+                      </label>
+                  </Form>
+              </ModalBody>
+              <ModalFooter>
+                  <SignUpModal/>
+                  <Button color="warning" type="submit" on:click={handleFormSubmit}>Login</Button>
+                  <Button color="secondary" on:click={toggle}>Cancel</Button>
+              </ModalFooter>
         </Modal>
     {/if}
 </div>

@@ -1,25 +1,18 @@
 <script>
-    import SearchBar from "$lib/searchBar.svelte"
-    import {
-        Button,
-        Container,
-        Row,
-        Col,
-        Nav,
-        NavItem,
-    } from "sveltestrap";
+  import SearchBar from "$lib/searchBar.svelte"
+  import {
+    Button,
+      Container,
+      Row,
+      Col,
+  } from "sveltestrap";
 
-    import { search_tags } from '$lib/stores.js'
-    import { onMount } from "svelte";
-    import { logged_in } from '$lib/stores.js'
+  import { search_tags } from '$lib/stores.js'
+  import { onMount } from "svelte";
 
-    onMount(() => {
-      //check for cookie
-        if (document.cookie.split(';').some((item) => item.trim().startsWith('jwt='))) {
-            logged_in.set(true)
-        }
+  onMount(() => {
       search_tags.set(null)
-    })
+      })
 </script>
 
 <div class="logo py-0">
