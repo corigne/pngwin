@@ -590,9 +590,7 @@ app.get('/api/getPost', async (req: Request, res: Response) => {
     })
   }
 
-  const post = await Post.findByPk(imageID, {
-    attributes: [ "id", "author", "tags", "score", "date_created" ]
-  })
+  const post = await Post.findByPk(imageID)
 
   if(!post){
     return res.status(500).json({
@@ -602,9 +600,25 @@ app.get('/api/getPost', async (req: Request, res: Response) => {
     })
   }
 
+  const upvotes: bigint[] = post.get("upvotes")
+  const downvotes: bigint[] = post.get("downvotes")
+
+  const upvote_count: number = (upvotes)? upvotes.length : 0
+  const downvote_count: number = (downvotes)? downvotes.length : 0
+
+  const censored_post = {
+    id: post.get("id"),
+    author: post.get("author"),
+    tags: post.get(("tags")),
+    score: post.get("score"),
+    upvotes: upvote_count,
+    downvotes: downvote_count,
+    date_created: post.get("date_created")
+  }
+
   return res.status(200).json({
     success: true,
-    post: post,
+    post: censored_post,
     error: null
   })
 })
