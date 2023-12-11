@@ -242,6 +242,24 @@ const getImagePathByID = (imageID: bigint) => {
   return `data/images/${Math.floor(Number(imageID)/4096)}`
 }
 
+const getUsernameByID = async (user_id: bigint) => {
+
+  if(!user_id){
+    throw new Error("user_id not provided.")
+  }
+
+  const user = await User.findOne({
+    attributes: ['username'],
+    where: { id: BigInt(user_id) }
+  })
+
+  if(!user){
+    throw new Error("User does not exist.")
+  }
+
+  return user.get("username")
+}
+
 const issue_JWT =  async (userid: number, session_id: string, length_days: number) => {
   const user = await User.findOne({
     attributes: ['role'],
@@ -748,6 +766,19 @@ app.post('/api/login', async (req: Request, res: Response) => {
         error: "Username not provided"
       })
     }
+
+    const user = await User.findOne({
+      attributes: ['id'],
+      where: { username: username }
+    })
+    if(!user) {
+      return res.status(200).json({
+        login: false,
+        otp_required: false,
+        session_id: null,
+        error: "User not found"
+      })
+    }
     const ban =  await check_user_ban(username)
     const timeout = await check_user_timeout(username)
     if(ban) {
@@ -767,18 +798,6 @@ app.post('/api/login', async (req: Request, res: Response) => {
       })
     }
 
-    const user = await User.findOne({
-      attributes: ['id'],
-      where: { username: username }
-    })
-    if(!user) {
-      return res.status(200).json({
-        login: false,
-        otp_required: false,
-        session_id: null,
-        error: "User not found"
-      })
-    }
     const data = user.get({ plain: true })
 
     try{
@@ -1176,6 +1195,43 @@ app.get('/api/userID', async (req: Request, res: Response) => {
       user_exists: false,
       username: null,
       error: `No username provided.`
+    })
+  }
+})
+
+app.get('/api/userName', async (req: Request, res: Response) => {
+
+  if("userID" in req.query ){
+
+    const userID: string | undefined = req.query.userID?.toString()
+
+    if(!userID){
+      return res.status(418).json({
+        user_exists: false,
+        username: null,
+        error: `Error: Field "username" is not defined in the query.`
+      })
+    }
+
+    const user = await User.findByPk(userID)
+
+    if(!user){
+      // Catches user DNE
+      return res.status(200).json({
+        user_exists: false,
+        username: null,
+        error: `User with id: '${userID}' does not exist.`
+      })
+    }
+
+    const username = user.get("username")
+    return res.json({username: username})
+  }
+  else{
+    return res.status(418).json({
+      user_exists: false,
+      username: null,
+      error: `No userID provided.`
     })
   }
 })
