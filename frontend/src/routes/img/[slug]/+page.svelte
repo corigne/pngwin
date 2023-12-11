@@ -4,25 +4,18 @@
   } from 'sveltestrap';
 
   import { convertBuffer2BlobURL } from '$lib/convert'
+  import { logged_in } from '$lib/stores'
 
   /** @type {import('./$types').PageData} */
 	export let data
 
-  function downloadBlob(blob, name = 'file.txt') {
-    //const blobUrl = URL.createObjectURL(blob);
-
+  const downloadBlob = (blob, name = 'file.txt') => {
     // Create a link element
     const link = document.createElement("a");
-
-    // Set link's href to point to the Blob URL
     link.href = blob;
     link.download = name;
-
-    // Append link to the body
     document.body.appendChild(link);
 
-    // Dispatch click event on the link
-    // This is necessary as link.click() does not work on the latest firefox
     link.dispatchEvent(
       new MouseEvent('click', {
         bubbles: true,
@@ -30,7 +23,6 @@
         view: window
       })
     );
-
     // Remove link from body
     document.body.removeChild(link);
   }
@@ -62,6 +54,12 @@
 
     downloadBlob(blob, `${data.id}_${data.tags.join('-')}.png`)
   }
+
+  const tryVote= async (liked) => {
+
+
+  }
+
 </script>
 
 <main class="main-section">
@@ -70,7 +68,7 @@
       <div class="info-card">
         <h3>Information</h3>
         <p>Tags: {data.tags}</p>
-        <p>Author: {data.author}</p>
+        <p>Poster: <b>{data.author_name}</b> ({data.author})</p>
         <Button on:click={openImageInTab}>View Full-size Image</Button>
         <Button on:click={downloadImage}>Download as .png</Button>
       </div>
@@ -86,8 +84,10 @@
             <div>
               <p> Score: {data.score} </p>
             </div>
-            <Button>Like</Button>
-            <Button>Dislike</Button>
+            {#if $logged_in}
+              <Button on:click={tryVote(true)}>Like</Button>
+              <Button on:click={tryVote(false)}>Dislike</Button>
+            {/if}
           </CardBody>
         </Card>
       </div>

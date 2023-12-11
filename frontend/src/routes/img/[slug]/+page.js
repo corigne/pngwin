@@ -21,8 +21,12 @@ export const load = async ({fetch, params}) => {
   }
 
   const img_blob = await convertBuffer2BlobURL(buff)
-
   post.post.uri = img_blob
+
+  const name_res = await fetch(`http://localhost:3000/api/userName?userID=${post.post.author}`)
+  const { username } = await name_res.json()
+
+  post.post.author_name = username
 
   return post.post
 }

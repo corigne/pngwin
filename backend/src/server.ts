@@ -1149,17 +1149,16 @@ app.post('/testJWT', async (req: Request, res: Response) => {
 })
 
 app.get('/api/userID', async (req: Request, res: Response) => {
-  if("username" in req.query ){
+  const { query } = req
 
-    const username: string | undefined = req.query.username?.toString()
-
-    if(!username){
+    if(!query.username){
       return res.status(418).json({
         user_exists: false,
         username: null,
         error: `Error: Field "username" is not defined in the query.`
       })
     }
+    const username:string = query.username?.toString()
 
     const user = await User.findOne({
       attributes: ['id'],
@@ -1188,52 +1187,35 @@ app.get('/api/userID', async (req: Request, res: Response) => {
         error: err.toString()
       })
     })
-
-  }
-  else{
-    return res.status(418).json({
-      user_exists: false,
-      username: null,
-      error: `No username provided.`
-    })
-  }
 })
 
 app.get('/api/userName', async (req: Request, res: Response) => {
 
-  if("userID" in req.query ){
+  const { query } = req
 
-    const userID: string | undefined = req.query.userID?.toString()
-
-    if(!userID){
-      return res.status(418).json({
-        user_exists: false,
-        username: null,
-        error: `Error: Field "username" is not defined in the query.`
-      })
-    }
-
-    const user = await User.findByPk(userID)
-
-    if(!user){
-      // Catches user DNE
-      return res.status(200).json({
-        user_exists: false,
-        username: null,
-        error: `User with id: '${userID}' does not exist.`
-      })
-    }
-
-    const username = user.get("username")
-    return res.json({username: username})
-  }
-  else{
+  if(!query.userID){
     return res.status(418).json({
       user_exists: false,
       username: null,
-      error: `No userID provided.`
+      error: `Error: Field "username" is not defined in the query.`
     })
   }
+
+  const userID:bigint = BigInt(query.userID.toString())
+  console.log(userID)
+  const user = await User.findByPk(userID)
+
+  if(!user){
+    // Catches user DNE
+    return res.status(200).json({
+      user_exists: false,
+      username: null,
+      error: `User with id: '${userID}' does not exist.`
+    })
+  }
+
+  const username = user.get("username")
+  return res.json({username: username})
 })
 
 // verifies login session for a user
