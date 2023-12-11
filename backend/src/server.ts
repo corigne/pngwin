@@ -887,9 +887,9 @@ app.post('/api/postImage', async (req: Request, res: Response) => {
         })
       }
       else{
-        user_posts.push(post.id)
+        const new_posts = [... user_posts, post.get("id")]
         await user.update({
-          posts: user_posts
+          posts: new_posts
         })
       }
     }
@@ -1368,6 +1368,9 @@ app.get('/api/userProfile', verifyToken, async (req: Request, res: Response) => 
   if(!req.token) {
     return res.status(400).json({
       success: false,
+      username: null,
+      email: null,
+      posts: null,
       error: "No token in request body."
     })
   }
@@ -1377,6 +1380,9 @@ app.get('/api/userProfile', verifyToken, async (req: Request, res: Response) => 
   if(!valid) {
     return res.status(403).json({
       success: false,
+      username: null,
+      email: null,
+      posts: null,
       error: "No token in request body."
     })
   }
@@ -1391,6 +1397,9 @@ app.get('/api/userProfile', verifyToken, async (req: Request, res: Response) => 
   if(!user){
     return res.status(500).json({
       success: false,
+      username: null,
+      email: null,
+      posts: null,
       error: `User with id:${userid} was not found.`
     })
   }
@@ -1399,6 +1408,7 @@ app.get('/api/userProfile', verifyToken, async (req: Request, res: Response) => 
     success: true,
     username : user.get('username'),
     email : user.get('email'),
+    posts : user.get('posts'),
     user_id : user.get('id'),
   })
 })

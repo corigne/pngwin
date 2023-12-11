@@ -65,9 +65,18 @@
             <NavItem>
               <NavLink color="warning">Settings</NavLink>
             </NavItem>
-            <NavItem>
-              <LogInButton />
-            </NavItem>
+            {#if ($logged_in)}
+              <NavItem>
+                <NavLink href="/profile" color="warning">Profile</NavLink>
+              </NavItem>
+              <NavItem>
+                <NavLink color="warning">Logout</NavLink>
+              </NavItem>
+            {:else}
+              <NavItem>
+                <LogInButton/>
+              </NavItem>
+            {/if}
         </Nav>
       </Collapse>
     </Navbar>
