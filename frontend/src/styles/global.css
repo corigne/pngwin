@@ -6,13 +6,43 @@ body {
 .nav {
   background-color: #f0f0f0;
   border-radius: 1ex;
-  display: flex;
   margin: auto;
   margin-top: 1ex;
+}
+
+.navbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   flex-direction: row;
+  flex-wrap: nowrap;
+}
+
+.searchbar-container {
+  margin-inline: auto;
+  justify-content: center;
+  display: flex;
+  align-self: center;
   gap: 1ex;
 }
 
+.searchbar-container SearchBar {
+  flex-grow: 11;
+  align-self: center;
+}
+
+.left-buttons {
+  display: flex;
+  gap: 0.5ex;
+  align-items: center;
+}
+
+.right-buttons {
+  display: flex;
+  gap: 0.5ex;
+  margin-left: auto;
+  align-items: center;
+}
 
 img.icon {
   width: 2.5em;
@@ -53,24 +83,43 @@ figure.logo {
 /* Styles for screens smaller than 576px (extra small) */
 @media (max-width: 575.98px) {
   /* Your styles for extra small screens */
+  .main-search{
+    margin-inline: 1vw;
+  }
 }
 
 /* Styles for screens between 576px and 767.98px (small) */
 @media (min-width: 576px) and (max-width: 767.98px) {
   /* Your styles for small screens */
+  .main-search{
+    margin-inline: 3vw;
+  }
+
+  .navbar-container {
+    flex-wrap: wrap;
+  }
 }
 
 /* Styles for screens between 768px and 991.98px (medium) */
 @media (min-width: 768px) and (max-width: 991.98px) {
   /* Your styles for medium screens */
+  .main-search{
+    margin-inline: 5vw;
+  }
 }
 
 /* Styles for screens between 992px and 1199.98px (large) */
 @media (min-width: 992px) and (max-width: 1199.98px) {
   /* Your styles for large screens */
+  .main-search{
+    margin-inline: 10vw;
+  }
 }
 
 /* Styles for screens 1200px and larger (extra large) */
 @media (min-width: 1200px) {
   /* Your styles for extra large screens */
+  .main-search{
+    margin-inline: 20vw;
+  }
 }

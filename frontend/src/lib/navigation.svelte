@@ -3,77 +3,84 @@
     Container,
     Navbar,
     NavbarBrand,
-    Button
+    Button,
+    Collapse,
+    NavbarToggler,
+    Nav,
+    NavItem,
+    NavLink
   } from 'sveltestrap'
   import LogInButton from '../lib/loginButton.svelte'
+  import SearchBar from './searchBar.svelte'
   import { page } from '$app/stores'
   import { onMount } from 'svelte';
+  import { logged_in } from '$lib/stores.js'
 
-  // Check if the current page is the root page
-  let isRoot = $page.url.pathname === "/"
-  console.log(isRoot)
-  let loggedIn = false;
+  const handleResize = () => {
+    // Set isOpen to true when the window expands beyond a certain width
+    isOpen = window.innerWidth > 768; // Adjust the width threshold as needed
+  };
 
-  onMount((async () => {
-    isRoot = $page.url.pathname === "/"
-    //check cookie for login
-    if(document.cookie.split(';').some((item) => item.trim().startsWith('jwt='))) {
-      const res = await fetch('http://localhost:3000/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({jwt: document.cookie.split(';').find((item) => item.trim().startsWith('jwt=')).split('=')[1]
-                                , username: document.cookie.split(';').find((item) => item.trim().startsWith('username=')).split('=')[1]})
-      });
-      const data = await res.json();
-      if(data.login) {
-        loggedIn = true;
-        return;
-      }
-    }
-  }))
+  onMount(() => {
+    // Initialize isOpen based on the initial window width
+    handleResize();
+
+    // Add a resize event listener
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup the event listener on component destruction
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  });
+
+  let isOpen = true;
 </script>
 
 {#if ($page.url.pathname !== "/")}
 <div class="nav">
   <Container fluid>
-    <Navbar>
-      <div left>
+    <Navbar class="navbar-container" expand="md" on:expand={() => isOpen = true} >
       <NavbarBrand><img class="icon" href="/" src="pngwin-modified.png" alt="png.win mascot"/></NavbarBrand>
-      <div class="d-inline px-2">
-          <Button href="/search" size="lg" color="warning">Images</Button>
-      </div>
-      <div class="d-inline px-2">
-          <Button size="lg" color="warning">Collections</Button>
-      </div>
-      <div class="d-inline px-2">
-          <Button size="lg" color="warning">Random</Button>
-      </div>
-      </div>
-      <div right>
-      <div class="d-inline px-2">
-          <Button color="warning">Help</Button>
-      </div>
-      <div class="d-inline px-2">
-          <Button color="warning">Settings</Button>
-      </div>
-      {#if !loggedIn}
-        <LogInButton />
-      {:else}
-        <Button href="/profile" color="warning">Profile</Button>
-    {/if}
-      </div>
+        <Nav class="ml-auto" navbar style="flex-grow: 2;">
+          <NavItem style="flex-grow: 1; margin:1vw;">
+              <SearchBar />
+          </NavItem>
+        </Nav>
+        <NavbarToggler on:click={() => isOpen = !isOpen}/>
+        <Collapse navbar {isOpen}>
+          <Nav navbar class="ml-auto right-buttons">
+            <NavItem>
+                <NavLink href="/search" size="md" color="warning">Images</NavLink>
+            </NavItem>
+            <NavItem>
+                <NavLink size="med" color="warning">Collections</NavLink>
+            </NavItem>
+            <NavItem>
+                <NavLink size="med" color="warning">Random</NavLink>
+            </NavItem>
+            <NavItem>
+              <NavLink color="warning">Help</NavLink>
+            </NavItem>
+            <NavItem>
+              <NavLink color="warning">Settings</NavLink>
+            </NavItem>
+            <NavItem>
+              <LogInButton />
+            </NavItem>
+        </Nav>
+      </Collapse>
     </Navbar>
   </Container>
 </div>
 {:else}
   <Navbar>
-      <div class="right">
-        {#if !loggedIn}
+      <div class="right-buttons">
+        {#if (!$logged_in)}
           <LogInButton/>
         {:else}
           <Button href="/profile" color="warning">Profile</Button>
+          <Button color="warning">Logout</Button>
         {/if}
         <Button color="warning">Help</Button>
       </div>
@@ -81,9 +88,7 @@
 {/if}
 
 <style>
-  .right{
-    display: flex;
-    margin-left: auto;
-    gap: 1ex;
+  NavbarToggler {
+    margin-inline: 0.2ex;
   }
 </style>

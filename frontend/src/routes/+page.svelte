@@ -9,9 +9,14 @@
 
     import { search_tags } from '$lib/stores.js'
     import { onMount } from "svelte";
+    import { logged_in } from '$lib/stores.js'
 
     onMount(() => {
       search_tags.set([])
+      //check for cookie
+        if (document.cookie.split(';').some((item) => item.trim().startsWith('jwt='))) {
+            logged_in.set(true)
+        }
     })
 </script>
 
@@ -28,13 +33,11 @@
     </Container>
 </div>
 
-<div class="searchbar">
-    <Container>
-        <Row>
-          <SearchBar />
-        </Row>
-    </Container>
-</div>
+<Container fluid>
+  <div class="main-search">
+    <SearchBar />
+  </div>
+</Container>
 
 <div class="buttons">
     <Container>
@@ -53,3 +56,6 @@
         </Row>
     </Container>
 </div>
+
+<style>
+</style>

@@ -548,7 +548,7 @@ app.get('/api/getImage', async (req: Request, res: Response) => {
   image_buffer = fs.readFileSync(`${filepath}/prev/${imageID}.png`)
   }
   catch(err){
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       buffer: null,
       error: "FS Read error: " + err

@@ -1,5 +1,6 @@
 <script>
   import { onMount } from "svelte";
+  import { Card, CardBody, CardFooter, CardImg, Col, Row } from "sveltestrap";
 
   let username = "";
   let email = "";
@@ -36,9 +37,27 @@
 </script>
 
 <main>
-  <h1>Welcome to your Profile Page</h1>
-  <p>Username: {username}</p>
-  <p>Email: {email}</p>
+  <Row>
+    <Col class = "mb-3">
+      <Card>
+        <CardImg
+          top
+          width="20%"
+          max-width="200px"
+          max-height="200px"
+          src="https://i.imgur.com/81Eqq4c.jpg"
+          alt="Card image cap"
+        />
+        <CardBody>
+          <h5 class="card-title">{username}</h5>
+          <p class="card-text">{email}</p>
+        </CardBody>
+        <CardFooter>
+          <small class="text-muted">User ID: {user_id}</small>
+        </CardFooter>
+      </Card>
+    </Col>
+  </Row>
 </main>
 
 <style>
