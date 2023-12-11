@@ -262,6 +262,7 @@ const storeNewImage = async (imgFile: UploadedFile, imgID: bigint) => {
     throw new Error("No file provided.")
   }
 
+  const data = imgFile.data
   let sharpImage = Sharp(imgFile.data)
 
   let thumbnail: Buffer
@@ -295,6 +296,7 @@ const storeNewImage = async (imgFile: UploadedFile, imgID: bigint) => {
       throw new Error("Mkdir image path error:" + err)
     }
   }
+
   if(!fs.existsSync(thumb_path)){
     try{
       fs.mkdirSync(thumb_path, {recursive: true})
@@ -304,11 +306,11 @@ const storeNewImage = async (imgFile: UploadedFile, imgID: bigint) => {
     }
   }
 
-  const fileName = `${imgID}.png`
+  const fileName = `${imgID}`
 
   try {
     fs.writeFileSync(`${thumb_path}/${fileName}`, thumbnail)
-    fs.writeFileSync(`${imgPath}/${fileName}`, imgFile.data)
+    fs.writeFileSync(`${imgPath}/${fileName}`, data)
   }
   catch (err){
     throw new Error("Write file error:" + err)
@@ -541,13 +543,16 @@ app.get('/api/getImage', async (req: Request, res: Response) => {
   let filepath = getImagePathByID(imageID)
 
   try{
-  if(fullsize){
-    image_buffer = fs.readFileSync(`${filepath}/${imageID}.png`)
-  }
-
-  image_buffer = fs.readFileSync(`${filepath}/prev/${imageID}.png`)
+    if(fullsize){
+      image_buffer = fs.readFileSync(`${filepath}/${imageID}`)
+      console.log("Getting fs image instead for id: ", imageID)
+    }
+    else{
+      image_buffer = fs.readFileSync(`${filepath}/prev/${imageID}`)
+    }
   }
   catch(err){
+    console.error("FS Read error:", err)
     return res.status(500).json({
       success: false,
       buffer: null,
