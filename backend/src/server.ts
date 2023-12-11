@@ -577,7 +577,18 @@ app.get('/api/getPost', async (req: Request, res: Response) => {
     })
   }
 
-  const imageID:bigint = BigInt(query.imageID as string)
+  let imageID:bigint
+
+  try{
+    imageID = BigInt(query.imageID as string)
+  }
+  catch(err){
+    return res.status(418).json({
+      success: false,
+      post: null,
+      error: `ID: ${query.imageID} is not a valid ID.`
+    })
+  }
 
   const post = await Post.findByPk(imageID, {
     attributes: [ "id", "author", "tags", "score", "date_created" ]
