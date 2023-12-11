@@ -30,6 +30,9 @@ export default class Post extends Model{
   @Column(DataType.BIGINT)
   public score: bigint
 
+  @Column(DataType.TEXT)
+  public mime: string
+
   @CreatedAt
   @Column(DataType.DATE)
   public date_created: Date;

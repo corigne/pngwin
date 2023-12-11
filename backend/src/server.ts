@@ -7,6 +7,7 @@ import fileUpload, { UploadedFile } from 'express-fileupload'
 import * as dotenv from 'dotenv'
 import fs from 'fs'
 import Sharp from 'sharp'
+const gifResize = require('@gumlet/gif-resize')
 
 // sequelize imports for postgresql
 import { Sequelize } from 'sequelize-typescript'
@@ -274,7 +275,7 @@ const issue_JWT =  async (userid: number, session_id: string, length_days: numbe
   return token
 }
 
-const storeNewImage = async (imgFile: UploadedFile, imgID: bigint) => {
+const storeNewImage = async (imgFile: UploadedFile,imgID: bigint) => {
 
   if(!imgFile){
     throw new Error("No file provided.")
@@ -282,14 +283,38 @@ const storeNewImage = async (imgFile: UploadedFile, imgID: bigint) => {
 
   const data = imgFile.data
   let sharpImage = Sharp(imgFile.data)
-
   let thumbnail: Buffer
   let imgPath: string = ""
 
   try {
     // thumbnail = await imageThumbnail(imgFile.data)
-    thumbnail = await sharpImage.resize(1280,720,{withoutEnlargement:true})
-      .png().toBuffer()
+    switch (imgFile.mimetype) {
+      case 'image/jpeg':
+        sharpImage.resize(1280,720,{withoutEnlargement:true})
+        thumbnail = await sharpImage.jpeg().toBuffer()
+        break
+      case 'image/png':
+        sharpImage.resize(1280,720,{withoutEnlargement:true})
+        thumbnail = await sharpImage.png().toBuffer()
+        break
+      case 'image/gif':
+        sharpImage.destroy()
+        sharpImage = Sharp(imgFile.data, {animated: true})
+        sharpImage.resize(400,300,{withoutEnlargement:true})
+        thumbnail = await sharpImage.gif().toBuffer()
+        break
+      case 'image/webp':
+        sharpImage.resize(1280,720,{withoutEnlargement:true})
+        thumbnail = await sharpImage.webp().toBuffer()
+        break
+      case 'image/tiff':
+        sharpImage.resize(1280,720,{withoutEnlargement:true})
+        thumbnail = await sharpImage.tiff().toBuffer()
+        break
+      default:
+        console.error(`Unsupported Image Mime-type:${imgFile.mimetype}`)
+        throw new Error(`Unsupported Image Mimemtype:${imgFile.mimetype}`)
+    }
 
   } catch (err) {
     console.error(err)
@@ -636,6 +661,7 @@ app.get('/api/getPost', async (req: Request, res: Response) => {
     score: post.get("score"),
     upvotes: upvote_count,
     downvotes: downvote_count,
+    mime: post.get("mime"),
     date_created: post.get("date_created")
   }
 
@@ -878,12 +904,35 @@ app.post('/api/postImage', async (req: Request, res: Response) => {
 
   if(req?.files?.image){
 
+    const image:UploadedFile = req.files.image as UploadedFile
+
+    if(!image.mimetype.includes('image')) {
+      return res.status(418).json({
+        post_created: false,
+        reason:"Invalid file mimetype. We serve images here.",
+        error: null
+      })
+    }
+
+    let tags
+    try{
+      tags = JSON.parse(body.tags)
+    }
+    catch(err){
+      return res.status(500).json({
+        post_created: false,
+        reason:"Unable to parse taglist provided.",
+        error: err
+      })
+    }
+
     const post = new Post({
       author: token.userid,
-      tags: JSON.parse(body.tags),
+      tags: tags,
       upvotes: [token.userid],
       downvotes: [],
-      score: 1
+      score: 1,
+      mime: image.mimetype
     })
 
     try{
