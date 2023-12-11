@@ -4,11 +4,13 @@
 
   import { search_tags } from '$lib/stores.js'
   import { convertBuffer2BlobURL } from '$lib/convert'
+  import { goto } from '$app/navigation'
 
   let data = {}
   let posts = []
   let sortBy = "Date"
   let sortOrder = "desc"
+
 
   // placeholder for the unsubscribe callback
   let subscription_tags
@@ -147,14 +149,14 @@
     <Row class="card-row">
       {#each sortedPosts as post}
         <Col sm="12" md="6" lg="4" xl="3" xxl="2" class="mb-3" >
-          <div class="card-container">
-          <Card>
-            <CardImg class="card-img" src={post.uri} alt={`Image tags: ${post.tags}`}/>
+          <Card class="card-container" on:click={goto(`/img/${post.id}`)}>
+            <CardImg src={post.uri} alt={`Image tags: ${post.tags}`}/>
             <CardBody >
-              <CardFooter class="card-footer">ID:{post.id} , Score: {post.score}, Tags: {post.tags}</CardFooter>
+              <CardFooter class="card-footer">
+                ID:{post.id} , Score: {post.score}, Tags: {post.tags}
+              </CardFooter>
             </CardBody>
           </Card>
-          </div>
         </Col>
       {/each}
     </Row>
@@ -168,5 +170,4 @@
   header {
     margin-bottom: 1em
   }
-
 </style>

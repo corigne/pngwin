@@ -49,21 +49,21 @@
         </Nav>
         <NavbarToggler on:click={() => isOpen = !isOpen}/>
         <Collapse navbar {isOpen}>
-          <Nav navbar class="ml-auto right-buttons">
+          <Nav navbar underline class="ml-auto right-buttons">
             <NavItem>
-                <NavLink href="/search" size="md" color="warning">Images</NavLink>
+                <NavLink href="/search" size="md" >Images</NavLink>
             </NavItem>
             <NavItem>
-                <NavLink size="med" color="warning">Collections</NavLink>
+                <NavLink size="med">Collections</NavLink>
             </NavItem>
             <NavItem>
-                <NavLink size="med" color="warning">Random</NavLink>
+                <NavLink size="med">Random</NavLink>
             </NavItem>
             <NavItem>
-              <NavLink color="warning">Help</NavLink>
+              <NavLink >Help</NavLink>
             </NavItem>
             <NavItem>
-              <NavLink color="warning">Settings</NavLink>
+              <NavLink >Settings</NavLink>
             </NavItem>
             <NavItem>
               <LogInButton />
@@ -83,4 +83,7 @@
 {/if}
 
 <style>
+  :global(NavLink):hover {
+    border-bottom: 2px solid #000000;
+  }
 </style>
