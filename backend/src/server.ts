@@ -1263,10 +1263,10 @@ app.post('/api/verifyOTP', async (req: Request, res: Response) => {
 })
 
 // api endpoint for upvoting or downvoting a post
-// input postID: bigint/number, vote: number
+// input id: bigint/number, vote: number, collection: bool|undefined
 // 1 = liked, -1 = disliked, 0 = the votes will be reset
+// if collection, set collection true, default mode is image
 // output success: boolean, error: string
-// TODO: generalize the vote code
 app.post('/api/vote', verifyToken, async (req: Request, res: Response) => {
 
   const {body} = req
@@ -1295,74 +1295,146 @@ app.post('/api/vote', verifyToken, async (req: Request, res: Response) => {
   }
 
   const userid:bigint = BigInt(jwt.decode(req.token).userid)
-  const postID:bigint = BigInt(body.postID as string)
+  const id:bigint = BigInt(body.postID as string)
 
-  const post = await Post.findByPk(postID)
+  if(body.collection){
 
-  if(!post){
-    return res.status(500).json({
-      success: false,
-      error: `Post with id:${postID} was not found.`
-    })
+    const collection = await Collection.findByPk(id)
+    if(!collection){
+      return res.status(500).json({
+        success: false,
+        error: `collection with id:${id} was not found.`
+      })
+    }
+
+    let up: Array<bigint> = collection.get('upvotes').map(id => BigInt(id))
+    let down: Array<bigint> = collection.get('downvotes').map(id => BigInt(id))
+    let score:bigint = BigInt(collection.get('score'))
+
+    try {
+
+      if(body.vote > 0 && !up.includes(userid)){
+
+        const new_up = [...up, userid]
+        const new_down = down.filter(id => id !== userid)
+        score = BigInt(new_up.length - new_down.length)
+
+        console.log("up:", new_up)
+        console.log("down:", new_down)
+        console.log("score:", score)
+
+        await collection.update({
+          upvotes: new_up,
+          downvotes: new_down,
+          score: score
+        })
+      }
+
+      else if(body.vote < 0 && !down.includes(userid)){
+
+        const new_down = [...down, userid]
+        const new_up = up.filter(id => id !== userid)
+        score = BigInt(new_up.length - new_down.length)
+
+        console.log("up:", new_up)
+        console.log("down:", new_down)
+        console.log("score:", score)
+
+        await collection.update({
+          upvotes: new_up,
+          downvotes: new_down,
+          score: score
+        })
+      }
+
+      else if (body.vote == 0){
+        const new_up = up.filter(id => id !== userid)
+        const new_down = down.filter(id => id !== userid)
+        score = BigInt(new_up.length - new_down.length)
+
+        await collection.update({
+          upvotes: new_up,
+          downvotes: new_down,
+          score: score
+        })
+      }
+    }
+    catch (err) {
+      return res.status(500).json({
+        success: false,
+        error: "Database update error: " + err
+      })
+    }
   }
 
-  let up: Array<bigint> = post.get('upvotes').map(id => BigInt(id))
-  let down: Array<bigint> = post.get('downvotes').map(id => BigInt(id))
-  let score:bigint = BigInt(post.get('score'))
+  else{
 
-  try {
-
-    if(body.vote > 0 && !up.includes(userid)){
-
-      const new_up = [...up, userid]
-      const new_down = down.filter(id => id !== userid)
-      score = BigInt(new_up.length - new_down.length)
-
-      console.log("up:", new_up)
-      console.log("down:", new_down)
-      console.log("score:", score)
-
-      await post.update({
-        upvotes: new_up,
-        downvotes: new_down,
-        score: score
+    const post = await Post.findByPk(id)
+    if(!post){
+      return res.status(500).json({
+        success: false,
+        error: `Post with id:${id} was not found.`
       })
     }
 
-    else if(body.vote < 0 && !down.includes(userid)){
+    let up: Array<bigint> = post.get('upvotes').map(id => BigInt(id))
+    let down: Array<bigint> = post.get('downvotes').map(id => BigInt(id))
+    let score:bigint = BigInt(post.get('score'))
 
-      const new_down = [...down, userid]
-      const new_up = up.filter(id => id !== userid)
-      score = BigInt(new_up.length - new_down.length)
+    try {
 
-      console.log("up:", new_up)
-      console.log("down:", new_down)
-      console.log("score:", score)
+      if(body.vote > 0 && !up.includes(userid)){
 
-      await post.update({
-        upvotes: new_up,
-        downvotes: new_down,
-        score: score
+        const new_up = [...up, userid]
+        const new_down = down.filter(id => id !== userid)
+        score = BigInt(new_up.length - new_down.length)
+
+        console.log("up:", new_up)
+        console.log("down:", new_down)
+        console.log("score:", score)
+
+        await post.update({
+          upvotes: new_up,
+          downvotes: new_down,
+          score: score
+        })
+      }
+
+      else if(body.vote < 0 && !down.includes(userid)){
+
+        const new_down = [...down, userid]
+        const new_up = up.filter(id => id !== userid)
+        score = BigInt(new_up.length - new_down.length)
+
+        console.log("up:", new_up)
+        console.log("down:", new_down)
+        console.log("score:", score)
+
+        await post.update({
+          upvotes: new_up,
+          downvotes: new_down,
+          score: score
+        })
+      }
+
+      else if (body.vote == 0){
+        const new_up = up.filter(id => id !== userid)
+        const new_down = down.filter(id => id !== userid)
+        score = BigInt(new_up.length - new_down.length)
+
+        await post.update({
+          upvotes: new_up,
+          downvotes: new_down,
+          score: score
+        })
+      }
+    }
+    catch (err) {
+      return res.status(500).json({
+        success: false,
+        error: "Database update error: " + err
       })
     }
-
-    else if (body.vote == 0){
-      const new_up = up.filter(id => id !== userid)
-      const new_down = down.filter(id => id !== userid)
-      score = BigInt(new_up.length - new_down.length)
-
-      await post.update({
-        upvotes: new_up,
-        downvotes: new_down,
-        score: score
-      })
-    }
-  }
-  catch (err) {
-    return res.status(500).json({
-      success: false,
-      error: "Database update error: " + err
-    })
   }
 
   return res.status(200).json({
