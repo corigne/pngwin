@@ -99,7 +99,7 @@
       console.log(result)
       console.log(json_res)
     }
-    document.cookie = null
+    document.cookie = `jwt=; expires=${new Date(Date.now() - 1 )}; path=/`;
     logged_in.set(false)
     user.set(null)
   }
