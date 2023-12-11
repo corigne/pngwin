@@ -548,7 +548,7 @@ app.get('/api/getImage', async (req: Request, res: Response) => {
   image_buffer = fs.readFileSync(`${filepath}/prev/${imageID}.png`)
   }
   catch(err){
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       buffer: null,
       error: "FS Read error: " + err
@@ -577,7 +577,18 @@ app.get('/api/getPost', async (req: Request, res: Response) => {
     })
   }
 
-  const imageID:bigint = BigInt(query.imageID as string)
+  let imageID:bigint
+
+  try{
+    imageID = BigInt(query.imageID as string)
+  }
+  catch(err){
+    return res.status(418).json({
+      success: false,
+      post: null,
+      error: `ID: ${query.imageID} is not a valid ID.`
+    })
+  }
 
   const post = await Post.findByPk(imageID, {
     attributes: [ "id", "author", "tags", "score", "date_created" ]
@@ -887,9 +898,9 @@ app.post('/api/postImage', async (req: Request, res: Response) => {
         })
       }
       else{
-        user_posts.push(post.id)
+        const new_posts = [... user_posts, post.get("id")]
         await user.update({
-          posts: user_posts
+          posts: new_posts
         })
       }
     }
