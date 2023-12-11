@@ -5,8 +5,6 @@ export const load = async ({fetch, params}) => {
 
   const id = params.slug
 
-  console.log(id)
-
   const post_res = await fetch(`http://localhost:3000/api/getPost?imageID=${id}`)
   const post = await post_res.json()
 
