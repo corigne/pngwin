@@ -35,8 +35,6 @@
       if (Date.now() >= exp * 1000) {
         console.log("Token expired, logging you out.")
         handleLogout()
-        document.cookie = ""
-        logged_in.set(false)
       }
 
       const gotName = await fetch(`http://localhost:3000/api/userName?userID=${userid}`)
@@ -84,7 +82,26 @@
   }
 
   const handleLogout = async () => {
+    if (document.cookie.split(';').some((item) => item.trim().startsWith('jwt='))) {
 
+      const jwt = document.cookie.split(';').find((t) => t.trim().startsWith('jwt=')).split('=')[1]
+
+      console.log(jwt)
+
+      const result = await fetch('http://localhost:3000/api/logout', {
+          method: "DELETE",
+          headers: {
+          'Authorization': `Bearer ${jwt}`
+          }
+        })
+      const json_res = await result.json()
+
+      console.log(result)
+      console.log(json_res)
+    }
+    document.cookie = null
+    logged_in.set(false)
+    user.set(null)
   }
 
   onMount(() => {
@@ -140,7 +157,7 @@
                 <NavLink href="/profile" color="warning">Profile</NavLink>
               </NavItem>
               <NavItem>
-                <NavLink color="warning">Logout</NavLink>
+                <NavLink color="warning" on:click={handleLogout}>Logout</NavLink>
               </NavItem>
             {:else}
               <NavItem>
@@ -159,7 +176,7 @@
           <LogInButton/>
         {:else}
           <Button href="/profile" color="warning">Profile</Button>
-          <Button color="warning">Logout</Button>
+          <Button color="warning" on:click={handleLogout}>Logout</Button>
         {/if}
         <Button color="warning">Help</Button>
       </div>

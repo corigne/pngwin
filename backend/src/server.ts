@@ -826,18 +826,19 @@ app.post('/api/login', async (req: Request, res: Response) => {
 
 // logout route
 // inputs: jwt
-app.delete('/api/logout', async (req: Request, res: Response) => {
-  const body = req.body
+// output: logout:bool, error: string
+app.delete('/api/logout', verifyToken, async (req: Request, res: Response) => {
 
-  // check for jwt in request
-  if (!body.jwt){
-    return res.status(418).json({
-      logged_out: false,
-      reason: "Error: no jwt provided."
+  console.log(req.token)
+
+  if(!req.token){
+    res.status(418).json({
+      logout: false,
+      error: "NO JWT"
     })
   }
 
-  const authenticated: boolean = await verify_JWT(body.jwt)
+  const authenticated: boolean = await jwt.verify(req.token, pub)
 
   // if JWT is valid invalidate session under session_id
   if(!authenticated){
@@ -845,7 +846,7 @@ app.delete('/api/logout', async (req: Request, res: Response) => {
   }
 
   // if session_id is invalidated, return success
-  const payload: any = jwt.decode(body.jwt)
+  const payload: any = jwt.decode(req.token)
 
   await delete_session(payload.session_id)
   .then(() => res.status(200).json({logout:true}))
