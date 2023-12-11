@@ -41,7 +41,7 @@
 <div class="nav">
   <Container fluid>
     <Navbar class="navbar-container" expand="md" on:expand={() => isOpen = true} >
-      <NavbarBrand><img class="icon" href="/" src="pngwin-modified.png" alt="png.win mascot"/></NavbarBrand>
+      <NavbarBrand><img class="icon" href="/" src="/pngwin-modified.png" alt="png.win mascot"/></NavbarBrand>
         <Nav class="ml-auto" navbar style="flex-grow: 2;">
           <NavItem style="flex-grow: 1; margin:1vw;">
               <SearchBar />
@@ -83,7 +83,4 @@
 {/if}
 
 <style>
-  NavbarToggler {
-    margin-inline: 0.2ex;
-  }
 </style>

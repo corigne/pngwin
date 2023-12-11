@@ -3,6 +3,7 @@
   import { Button, Card, CardBody, CardFooter, CardImg, Col, Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Label, Nav, NavItem, NavLink, Navbar, Row } from 'sveltestrap'
 
   import { search_tags } from '$lib/stores.js'
+  import { convertBuffer2BlobURL } from '$lib/convert'
 
   let data = {}
   let posts = []
@@ -70,17 +71,6 @@
     }
     catch(err){
       console.error(`Error fetching image for post:`, err)
-    }
-  }
-
-  const convertBuffer2BlobURL = async (imgBuffer) => {
-    try{
-      const blob = new Blob([imgBuffer], {type: 'image/png'})
-      const blobURL = URL.createObjectURL(blob)
-      return blobURL
-    }
-    catch(err){
-      console.error("Error converting to blob: ", err)
     }
   }
 
