@@ -19,15 +19,21 @@
   $: sortedPosts = [...posts]
 
   onMount(() => {
-    subscription_tags = search_tags.subscribe(update_search)
     if(!$search_tags){
       search_tags.set("")
     }
+    const urlParams = new URLSearchParams(window.location.search)
+    if(urlParams.has('tags')){
+      const temp_tag = urlParams.get('tags')
+      search_tags.set(temp_tag)
+    }
+    subscription_tags = search_tags.subscribe(update_search)
   })
 
   onDestroy(() => {
     if(subscription_tags){
       subscription_tags()
+      search_tags.set("")
     }
     console.log('unsubscribe to search_tags called')
   })

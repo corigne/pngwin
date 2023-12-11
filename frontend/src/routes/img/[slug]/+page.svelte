@@ -1,6 +1,8 @@
 <script>
   import {
-    Button, Card, CardBody
+    Button, Card, CardBody, ListGroup, ListGroupItem
+
+
   } from 'sveltestrap';
 
   import { convertBuffer2BlobURL } from '$lib/convert'
@@ -9,22 +11,19 @@
   /** @type {import('./$types').PageData} */
 	export let data
 
-  const downloadBlob = (blob, name = 'file.txt') => {
-    // Create a link element
-    const link = document.createElement("a");
-    link.href = blob;
-    link.download = name;
-    document.body.appendChild(link);
+  const ext = data.mime.split('/')[1]
+  console.log(data.uri)
 
-    link.dispatchEvent(
-      new MouseEvent('click', {
-        bubbles: true,
-        cancelable: true,
-        view: window
-      })
-    );
-    // Remove link from body
-    document.body.removeChild(link);
+  const downloadBlob = (blob, name) => {
+    const anchor = document.createElement('a')
+    anchor.setAttribute('download', name)
+    anchor.href = blob
+    anchor.setAttribute('target', '_blank')
+    anchor.click()
+    setTimeout(function(){
+        document.body.removeChild(anchor);
+        window.URL.revokeObjectURL(url);
+    }, 100);
   }
 
   const openImageInTab = async () => {
@@ -36,7 +35,7 @@
     }
 
     const buff = Uint8Array.from([...img.buffer.data])
-    const blob = await convertBuffer2BlobURL(buff)
+    const blob = await convertBuffer2BlobURL(buff, data.mime)
 
     let w = window.open(blob)
   }
@@ -50,13 +49,12 @@
     }
 
     const buff = Uint8Array.from([...img.buffer.data])
-    const blob = await convertBuffer2BlobURL(buff)
+    const blob = await convertBuffer2BlobURL(buff, data.mime)
 
-    downloadBlob(blob, `${data.id}_${data.tags.join('-')}.png`)
+    downloadBlob(blob, `${data.id}_${data.tags.join('-')}`)
   }
 
   const tryVote= async (liked) => {
-
 
   }
 
@@ -66,11 +64,16 @@
   <section class="sidebar">
     <Card>
       <div class="info-card">
-        <h3>Information</h3>
-        <p>Tags: {data.tags}</p>
-        <p>Poster: <b>{data.author_name}</b> ({data.author})</p>
+
+        <p><b>Poster:</b> <a href="/user/{data.id}"><b>{data.author_name}</b></a> ({data.author})</p>
+        <p><b>Tags:</b></p>
+        <div>
+        {#each data.tags as tag, i}
+          {(i > 0)? ', ':''}<a href="/search?tags={tag}">{tag}</a>
+        {/each}
+        </div>
         <Button on:click={openImageInTab}>View Full-size Image</Button>
-        <Button on:click={downloadImage}>Download as .png</Button>
+        <Button on:click={downloadImage}>Download as {ext}</Button>
       </div>
     </Card>
   </section>
@@ -102,15 +105,18 @@
 <style>
 
   .main-section {
-    display: flex;
     padding-top: 1vw;
     gap: 2ex;
   }
 
   .sidebar {
-    flex: 0 0 20%; /* Adjust width as needed */
+    float: left;
+    clear: left;
+    width: 250px;
+    min-height: 700px;
     background: #f0f0f0;
     padding: 1ex;
+    margin-right: 1ex;
 
     display: flex;
     flex-direction: column;
@@ -120,7 +126,6 @@
   .info-card {
     padding: 1ex;
     flex-grow: 1;
-    height: auto;
 
     display: flex;
     flex-direction: column;
@@ -129,9 +134,9 @@
   }
 
   .image-section {
-    flex: 1;
     background: #f0f0f0;
     padding: 1ex;
+    min-height: 700px;
 
     display:flex;
     align-items: center;
@@ -142,6 +147,7 @@
 
   .image-container {
     padding: 0;
+    margin: auto;
     border: #666666 solid 2px;
   }
 
@@ -163,7 +169,19 @@
   @media (max-width: 767.98px) {
     /* Your styles for small screens */
     .main-section {
+      display: flex;
       flex-direction: column;
+      width: 100%;
+    }
+    .sidebar {
+      width: auto;
+      margin: 0;
+      flex: 100%;
+      min-height: 0;
+    }
+    .image-section {
+      flex: 100%;
+      min-height: 0;
     }
   }
 

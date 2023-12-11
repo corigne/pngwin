@@ -12,6 +12,8 @@
 
   let temp_tags = ($search_tags)? $search_tags : ""
 
+  $: temp_tags = $search_tags
+
   const search_images = async (e) => {
     e.preventDefault()
 
