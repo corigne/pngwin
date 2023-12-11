@@ -12,11 +12,11 @@
     import { logged_in } from '$lib/stores.js'
 
     onMount(() => {
-      search_tags.set([])
       //check for cookie
         if (document.cookie.split(';').some((item) => item.trim().startsWith('jwt='))) {
             logged_in.set(true)
         }
+      search_tags.set(null)
     })
 </script>
 

@@ -5,13 +5,17 @@ body {
 
 .nav {
   background-color: #f0f0f0;
-  border-radius: 1ex;
   margin: auto;
-  margin-top: 1ex;
+  padding: 0;
+}
+
+.navbar {
+  padding: 0;
 }
 
 .navbar-container {
   display: flex;
+  padding: 0;
   justify-content: space-between;
   align-items: center;
   flex-direction: row;
