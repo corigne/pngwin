@@ -1,6 +1,6 @@
 <script>
   import { onDestroy, onMount } from 'svelte'
-  import { Button, Card, CardBody, CardFooter, CardImg, Col, Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Label, Nav, NavItem, NavLink, Navbar, Row } from 'sveltestrap'
+  import { Button, Card, CardBody, CardFooter, CardHeader, CardImg, Col, Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Image, Label, Nav, NavItem, NavLink, Navbar, Row } from 'sveltestrap'
 
   import { search_tags } from '$lib/stores.js'
   import { convertBuffer2BlobURL } from '$lib/convert'
@@ -162,12 +162,30 @@
     </Row>
   {:else}
 
-    No results!
+<div class="no-result text-center">
+    <Card>
+      <CardHeader>
+        <h4> No results here! </h4>
+      </CardHeader>
+      <CardImg src="/404.gif" alt="The dinosaur man with infinite sunglasses."/>
+      <CardBody>
+        <p> Where are the dinosaurs? </p>
+      </CardBody>
+    </Card>
+</div>
   {/if}
 </main>
 
 <style>
   header {
     margin-bottom: 1em
+  }
+
+  .no-result {
+    margin-top: 1vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 </style>
