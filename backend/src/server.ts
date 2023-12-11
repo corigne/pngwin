@@ -7,7 +7,6 @@ import fileUpload, { UploadedFile } from 'express-fileupload'
 import * as dotenv from 'dotenv'
 import fs from 'fs'
 import Sharp from 'sharp'
-const gifResize = require('@gumlet/gif-resize')
 
 // sequelize imports for postgresql
 import { Sequelize } from 'sequelize-typescript'
