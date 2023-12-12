@@ -27,7 +27,7 @@
   }
 
   const openImageInTab = async () => {
-    const res = await fetch(`http://localhost:3000/api/getImage?imageID=${data.id}&fullsize=true`)
+    const res = await fetch(`/api/getImage?imageID=${data.id}&fullsize=true`)
     const img = await res.json()
 
     if(!img){
@@ -41,7 +41,7 @@
   }
 
   const downloadImage = async () => {
-    const res = await fetch(`http://localhost:3000/api/getImage?imageID=${data.id}&fullsize=true`)
+    const res = await fetch(`/api/getImage?imageID=${data.id}&fullsize=true`)
     const img = await res.json()
 
     if(!img){

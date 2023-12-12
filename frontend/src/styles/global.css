@@ -91,6 +91,11 @@ figure.logo {
     box-shadow: 0px 0px 1ex rgba(0, 0, 0, 0.3); /* Add a subtle shadow on hover */
 }
 
+.post-counter {
+  text-align: center;
+  margin-top: 1em;
+}
+
 /* Default styles for all screen sizes */
 /* Styles for screens smaller than 576px (extra small) */
 @media (max-width: 575.98px) {

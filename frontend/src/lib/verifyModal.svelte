@@ -19,7 +19,7 @@
     let emailErrorMessage = "";
 
     const verifyUsername = async () => {
-        const res = await fetch("http://localhost:3000/api/userID?username={$username}");
+        const res = await fetch("/api/userID?username={$username}");
         const data = await res.json();
         console.log(data.error)
         if (data.user_exists) {
@@ -33,7 +33,7 @@
     };
 
     const createUser = async () => {
-        const res = await fetch("http://localhost:3000/api/createUser",
+        const res = await fetch("/api/createUser",
         {
             method: "POST",
             headers: {

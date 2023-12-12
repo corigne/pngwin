@@ -37,7 +37,7 @@
         handleLogout()
       }
 
-      const gotName = await fetch(`http://localhost:3000/api/userName?userID=${userid}`)
+      const gotName = await fetch(`/api/userName?userID=${userid}`)
 
       if(!gotName){
         return alert("Error in automatically logging in, please try logging in manually.")
@@ -49,7 +49,7 @@
         return alert("Login failed, username not found.")
 
       // otherwise fetch for login
-      const res = await fetch('http://localhost:3000/api/login', {
+      const res = await fetch('/api/login', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -88,7 +88,7 @@
 
       console.log(jwt)
 
-      const result = await fetch('http://localhost:3000/api/logout', {
+      const result = await fetch('/api/logout', {
           method: "DELETE",
           headers: {
           'Authorization': `Bearer ${jwt}`

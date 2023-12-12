@@ -39,13 +39,13 @@
               logged_in.set(false)
             }
 
-            const gotName = await fetch(`http://localhost:3000/api/userName?userID=${userid}`)
+            const gotName = await fetch(`/api/userName?userID=${userid}`)
             const { username } = await gotName.json()
 
             if(!username)
               return alert("Auto-login failed, please try logging in manually.")
 
-            const res = await fetch('http://localhost:3000/api/login',
+            const res = await fetch('/api/login',
                 {
               method: 'POST',
               headers: {
@@ -75,7 +75,7 @@
     }
 
     const manualLogin = async () => {
-        const res = await fetch('http://localhost:3000/api/login', {
+        const res = await fetch('/api/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -96,7 +96,7 @@
     }
 
     const otpLogin = async () => {
-        const res = await fetch('http://localhost:3000/api/verifyOTP', {
+        const res = await fetch('/api/verifyOTP', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

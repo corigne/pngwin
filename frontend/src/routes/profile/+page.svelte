@@ -15,7 +15,7 @@
         .split(";")
         .some((item) => item.trim().startsWith("jwt="))
     ) {
-      const res = await fetch("http://localhost:3000/api/userProfile", {
+      const res = await fetch("/api/userProfile", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -42,13 +42,13 @@
 
   const fetchPost = async (postid) => {
     try {
-      const res = await fetch(`http://localhost:3000/api/getPost?imageID=${postid}`, {
+      const res = await fetch(`/api/getPost?imageID=${postid}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
       });
-      const image = await fetch(`http://localhost:3000/api/getImage?imageID=${postid}`, {
+      const image = await fetch(`/api/getImage?imageID=${postid}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -122,7 +122,7 @@
 </main>
 
 <style>
-  
+
   .profile-container {
     width: 40%;
     max-width: 400px;

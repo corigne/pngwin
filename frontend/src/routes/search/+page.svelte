@@ -46,12 +46,12 @@
     console.log(tag_str)
 
     if(tag_str) {
-      data = await fetch(`http://localhost:3000/api/search?tags=${tag_str}`)
+      data = await fetch(`/api/search?tags=${tag_str}`)
       .then((res) => res.json())
       posts = data.posts
 
     } else {
-      data = await fetch(`http://localhost:3000/api/search?tags=`)
+      data = await fetch(`/api/search?tags=`)
       .then((res) => res.json())
       posts = data.posts
     }
@@ -67,7 +67,7 @@
 
   const fetchImage = async (post) => {
     try{
-      const res = await fetch(`http://localhost:3000/api/getImage?imageID=${post.id}`)
+      const res = await fetch(`/api/getImage?imageID=${post.id}`)
         .then((res) => res.json())
       if (res.buffer) {
         const buff = Uint8Array.from(res.buffer.data)

@@ -671,10 +671,20 @@ app.get('/api/getPost', async (req: Request, res: Response) => {
   })
 })
 
+app.get('/api/getPostCount', async (req, res) => {
+  try {
+    const postCount = await Post.count();
+
+    res.json({ postCount });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+})
+
 // api endpoint to get the current user's vote for a specific image
 // input token: string, postID: number
 // output liked: bool, disliked: bool, error: string
-// TODO: generalize the vote code
 app.get('/api/getVoted', verifyToken, async (req: Request, res: Response) => {
 
   const {query} = req
@@ -1631,5 +1641,5 @@ app.get('/.well-known/jwks.json', (res: Response) => {
 })
 
 app.listen(port, () => {
-  console.log(`Running on http://locahost:${port}`)
+  console.log(`Running on http://localhost:${port}`)
 })
