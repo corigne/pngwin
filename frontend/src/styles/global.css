@@ -7,10 +7,11 @@ body {
   background-color: #f0f0f0;
   margin: auto;
   padding: 0;
-}
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-.navbar {
-  padding: 0;
+  gap: 1ex;
 }
 
 .navbar-container {
@@ -43,7 +44,7 @@ body {
 
 .right-buttons {
   display: flex;
-  gap: 0.5ex;
+  gap: 0.25ex;
   margin-left: auto;
   align-items: center;
 }

@@ -126,48 +126,32 @@
 
 {#if ($page.url.pathname !== "/")}
 <div class="nav">
-  <Container fluid>
-    <Navbar class="navbar-container" expand="md" on:expand={() => isOpen = true} >
-      <NavbarBrand><img class="icon" href="/" src="/pngwin-modified.png" alt="png.win mascot"/></NavbarBrand>
-        <Nav class="ml-auto" navbar style="flex-grow: 2;">
-          <NavItem style="flex-grow: 1; margin:1vw;">
-              <SearchBar />
-          </NavItem>
-        </Nav>
-        <NavbarToggler on:click={() => isOpen = !isOpen}/>
-        <Collapse navbar {isOpen}>
-          <Nav navbar underline class="ml-auto right-buttons">
-            <NavItem>
-                <NavLink href="/search" size="md" >Images</NavLink>
-            </NavItem>
-            <NavItem>
-                <NavLink size="med">Collections</NavLink>
-            </NavItem>
-            <NavItem>
-                <NavLink size="med">Random</NavLink>
-            </NavItem>
-            <NavItem>
-              <NavLink >Help</NavLink>
-            </NavItem>
-            <NavItem>
-              <NavLink >Settings</NavLink>
-            </NavItem>
-            {#if ($logged_in)}
-              <NavItem>
-                <NavLink href="/profile" color="warning">Profile</NavLink>
-              </NavItem>
-              <NavItem>
-                <NavLink color="warning" on:click={handleLogout}>Logout</NavLink>
-              </NavItem>
-            {:else}
-              <NavItem>
-                <LogInButton/>
-              </NavItem>
-            {/if}
-        </Nav>
-      </Collapse>
-    </Navbar>
-  </Container>
+  <Navbar expand="md" style="flex-wrap:nowrap;">
+    <NavbarBrand><img class="icon" href="/" src="/pngwin-modified.png" alt="png.win mascot"/></NavbarBrand>
+    <NavItem class="ml-auto" navbar style="flex-grow: 2; min-width:30vw;">
+        <SearchBar />
+    </NavItem>
+    <NavItem>
+      <NavLink href="/postImage" ><Button>+</Button></NavLink>
+    </NavItem>
+    <NavbarToggler on:click={() => isOpen = !isOpen}/>
+  </Navbar>
+  <Navbar expand="md" on:expand={() => isOpen = true} >
+    <Collapse navbar {isOpen}>
+      <Nav navbar underline class="right-buttons">
+        <NavLink href="/search" >Images</NavLink>
+        <NavLink >Collections</NavLink>
+        <NavLink >Help</NavLink>
+        <NavLink >Settings</NavLink>
+        {#if ($logged_in)}
+          <NavLink href="/profile" color="warning">Profile</NavLink>
+          <NavLink color="warning" on:click={handleLogout}>Logout</NavLink>
+        {:else}
+          <LogInButton/>
+        {/if}
+    </Nav>
+    </Collapse>
+  </Navbar>
 </div>
 {:else}
   <Navbar>
@@ -175,6 +159,7 @@
         {#if (!$logged_in)}
           <LogInButton/>
         {:else}
+          <Button href="/postImage" color="warning">New Post</Button>
           <Button href="/profile" color="warning">Profile</Button>
           <Button color="warning" on:click={handleLogout}>Logout</Button>
         {/if}
