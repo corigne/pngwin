@@ -202,12 +202,13 @@ const create_session = async (in_user_id: number, is_remembered?: boolean) => {
 
 const delete_image = async (imgPath: string, postID: bigint) => {
   try{
-    fs.rmSync(`${imgPath}/prev/${postID}.png`)
-    fs.rmSync(`${imgPath}/${postID}.png`)
+    fs.rmSync(`${imgPath}/prev/${postID}`)
+    fs.rmSync(`${imgPath}/${postID}`)
     return true
   }
   catch(err){
-      throw new Error("Filesystem error:" + err)
+    console.error("Error deleting image:", err)
+    throw new Error("Error deleting image")
   }
 }
 
@@ -1003,8 +1004,8 @@ app.post('/api/postImage', async (req: Request, res: Response) => {
     }
     catch(err){
       try{
-        await delete_image(imgPath, post.id)
-        await post.destroy()
+        delete_image(imgPath, post.id)
+        post.destroy()
       }
       catch(err){
         console.log("Error cleaning up bad POST:" + err)
