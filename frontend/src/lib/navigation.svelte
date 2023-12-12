@@ -131,9 +131,11 @@
     <NavItem class="ml-auto" navbar style="flex-grow: 2; min-width:30vw;">
         <SearchBar />
     </NavItem>
-    <NavItem>
-      <NavLink href="/postImage" ><Button>+</Button></NavLink>
-    </NavItem>
+    {#if $logged_in}
+      <NavItem>
+        <NavLink href="/postImage" ><Button>+</Button></NavLink>
+      </NavItem>
+    {/if}
     <NavbarToggler on:click={() => isOpen = !isOpen}/>
   </Navbar>
   <Navbar expand="md" on:expand={() => isOpen = true} >
