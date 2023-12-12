@@ -890,19 +890,18 @@ app.delete('/api/logout', verifyToken, async (req: Request, res: Response) => {
 })
 
 // no filetype checking, expects infile already validated as png
-app.post('/api/postImage', async (req: Request, res: Response) => {
+app.post('/api/postImage', verifyToken, async (req: Request, res: Response) => {
 
   const body = req.body
 
   // verify JWT exists
-  if(!body?.token){
+  if(!req.token){
     return res.status(400).json({post_created: false, reason:"No JWT"})
   }
 
   let token
-
   try{
-    token = await jwt.verify(body.token, pub)
+    token = await jwt.verify(req.token, pub)
   }
   catch(err){
     return res.status(400).json({
@@ -912,115 +911,114 @@ app.post('/api/postImage', async (req: Request, res: Response) => {
     })
   }
 
-  if(req?.files?.image){
+  if(!req?.files?.image){
+    return res.status(400).json({error: "No file sent."})
+  }
 
-    const image:UploadedFile = req.files.image as UploadedFile
+  const image:UploadedFile = req.files.image as UploadedFile
 
-    if(!image.mimetype.includes('image')) {
-      return res.status(418).json({
-        post_created: false,
-        reason:"Invalid file mimetype. We serve images here.",
-        error: null
-      })
-    }
+  if(!image.mimetype.includes('image')) {
+    return res.status(418).json({
+      post_created: false,
+      reason:"Invalid file mimetype. We serve images here.",
+      error: null
+    })
+  }
 
-    let tags
+  let tags
+  try{
+    tags = JSON.parse(body.tags)
+  }
+  catch(err){
+    return res.status(500).json({
+      post_created: false,
+      reason:"Unable to parse taglist provided.",
+      error: err
+    })
+  }
+
+  const post = new Post({
+    author: token.userid,
+    tags: tags,
+    upvotes: [token.userid],
+    downvotes: [],
+    score: 1,
+    mime: image.mimetype
+  })
+
+  try{
+    await post.save()
+  }
+  catch(err: any){
+    return res.status(500).json({
+      post_created: false,
+      reason: "Database error.",
+      err: err.toString()
+    })
+  }
+
+  const img: UploadedFile = req.files.image as UploadedFile
+  let imgPath: string
+
+  try{
+    imgPath = await storeNewImage(img, post.id)
+  }
+  catch(err){
     try{
-      tags = JSON.parse(body.tags)
+      await post.destroy()
     }
     catch(err){
-      return res.status(500).json({
-        post_created: false,
-        reason:"Unable to parse taglist provided.",
-        error: err
-      })
+      console.log("Error cleaning up bad POST:" + err)
     }
 
-    const post = new Post({
-      author: token.userid,
-      tags: tags,
-      upvotes: [token.userid],
-      downvotes: [],
-      score: 1,
-      mime: image.mimetype
+    return res.status(500).json({
+      postSucess: false,
+      post: null,
+      error: "Database error:" + err
+    })
+  }
+
+  try{
+    await post.update({
+      filepath: imgPath
     })
 
-    try{
-      await post.save()
+    const user = await User.findByPk(token.userid)
+
+    if(!user){
+      throw new Error("Unable to add post to user.")
     }
-    catch(err: any){
-      return res.status(500).json({
-        post_created: false,
-        reason: "Database error.",
-        err: err.toString()
+
+    const user_posts = user.get('posts')
+
+    if (!user_posts){
+      await user.update({
+        posts: [post.id]
       })
     }
-
-    const img: UploadedFile = req.files.image as UploadedFile
-    let imgPath: string
-
-    try{
-      imgPath = await storeNewImage(img, post.id)
-    }
-    catch(err){
-      try{
-        await post.destroy()
-      }
-      catch(err){
-        console.log("Error cleaning up bad POST:" + err)
-      }
-
-      return res.status(500).json({
-        postSucess: false,
-        post: null,
-        error: "Database error:" + err
+    else{
+      const new_posts = [... user_posts, post.get("id")]
+      await user.update({
+        posts: new_posts
       })
     }
-
-    try{
-      await post.update({
-        filepath: imgPath
-      })
-
-      const user = await User.findByPk(token.userid)
-
-      if(!user){
-        throw new Error("Unable to add post to user.")
-      }
-
-      const user_posts = user.get('posts')
-
-      if (!user_posts){
-        await user.update({
-          posts: [post.id]
-        })
-      }
-      else{
-        const new_posts = [... user_posts, post.get("id")]
-        await user.update({
-          posts: new_posts
-        })
-      }
-    }
-    catch(err){
-      try{
-        delete_image(imgPath, post.id)
-        post.destroy()
-      }
-      catch(err){
-        console.log("Error cleaning up bad POST:" + err)
-      }
-      return res.status(500).json({
-        postSucess: false,
-        post: null,
-        error: "Post creation error:" + err
-      })
-    }
-
-    return res.status(200).json({postSucess: true, post: post})
   }
-  return res.status(400).json({error: "No file sent."})
+  catch(err){
+    try{
+      delete_image(imgPath, post.id)
+      post.destroy()
+    }
+    catch(err){
+      console.log("Error cleaning up bad POST:" + err)
+    }
+    return res.status(500).json({
+      postSucess: false,
+      post: null,
+      error: "Post creation error:" + err
+    })
+  }
 
+  return res.status(200).json({post_success: true, id: post.id})
 })
 
 // Search api endpoint

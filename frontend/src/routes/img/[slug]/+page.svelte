@@ -65,7 +65,7 @@
     <Card>
       <div class="info-card">
 
-        <p><b>Poster:</b> <a href="/user/{data.id}"><b>{data.author_name}</b></a> ({data.author})</p>
+        <p><b>Poster:</b> <a href="/user/{data.author}"><b>{data.author_name}</b></a> ({data.author})</p>
         <p><b>Tags:</b></p>
         <div>
         {#each data.tags as tag, i}

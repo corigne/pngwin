@@ -1,6 +1,6 @@
 body {
   background-color: #949494;
-  margin: 2%;
+  margin: 1%;
 }
 
 .nav {
@@ -9,7 +9,7 @@ body {
   padding: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
 
   gap: 1ex;
 }
@@ -104,6 +104,10 @@ figure.logo {
   .main-search{
     margin-inline: 1vw;
   }
+
+  .nav {
+    justify-content: center;
+  }
 }
 
 /* Styles for screens between 576px and 767.98px (small) */
@@ -116,6 +120,10 @@ figure.logo {
   .navbar-container {
     flex-wrap: wrap;
   }
+
+  .nav {
+    justify-content: center;
+  }
 }
 
 /* Styles for screens between 768px and 991.98px (medium) */
@@ -123,6 +131,10 @@ figure.logo {
   /* Your styles for medium screens */
   .main-search{
     margin-inline: 5vw;
+  }
+
+  .nav {
+    justify-content: center;
   }
 }
 

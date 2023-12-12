@@ -12,7 +12,6 @@
 
       if (postCount) {
         postCounter = postCount.toString()
-        console.log(postCount)
       }
     } catch (error) {
       console.error('Error fetching post count:', error);
