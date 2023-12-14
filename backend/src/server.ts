@@ -1581,7 +1581,7 @@ app.get('/api/userProfile', verifyToken, async (req: Request, res: Response) => 
       username: null,
       email: null,
       posts: null,
-      error: "No token in request body."
+      error: "Invalid token"
     })
   }
 
@@ -1606,6 +1606,47 @@ app.get('/api/userProfile', verifyToken, async (req: Request, res: Response) => 
     success: true,
     username : user.get('username'),
     email : user.get('email'),
+    posts : user.get('posts'),
+    user_id : user.get('id'),
+  })
+})
+
+//public api endpoint for getting user profile information
+//input: username
+//output: user profile information
+
+app.get('/api/userProfilePublic', async (req: Request, res: Response) => {
+  const {query} = req 
+  let userid;
+  //convert userid to int
+  if(query.userID){
+    //parse query.userID to bigint
+    userid = BigInt(query.userID as string)
+    console.log(`userid: ${userid}`)
+  }
+  else{
+    return res.status(400).json({
+      success: false,
+      username: null,
+      posts: null,
+      error: "No userid in request body."
+    })
+  }
+
+  const user = await User.findByPk(userid)
+
+  if(!user){
+    return res.status(500).json({
+      success: false,
+      username: null,
+      posts: null,
+      error: `User with id:${userid} was not found.`
+    })
+  }
+
+  return res.status(200).json({
+    success: true,
+    username : user.get('username'),
     posts : user.get('posts'),
     user_id : user.get('id'),
   })

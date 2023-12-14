@@ -1,44 +1,22 @@
 <script>
   import { onMount } from "svelte";
   import { Card, CardBody, CardFooter, CardImg, Col, Row } from "sveltestrap";
-  import { goto } from '$app/navigation'
+
+  import { convertBuffer2BlobURL } from '$lib/convert'
 
   let username = "";
-  let email = "";
   let user_id = "";
   let posts = [];
   let postids = [];
 
+  export let data
+
+  username = data.username;
+  user_id = 1;
+  postids = data.posts
+
   onMount(async () => {
-    //check if cookie exists and await fetch profile using jwt token in auth header
-    if (
-      document.cookie
-        .split(";")
-        .some((item) => item.trim().startsWith("jwt="))
-    ) {
-      const res = await fetch("/api/userProfile", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization:
-            "Bearer " +
-            document.cookie
-              .split(";")
-              .find((item) => item.trim().startsWith("jwt="))
-              .split("=")[1],
-        },
-      });
-      const data = await res.json();
-      if (data.success) {
-        username = data.username;
-        email = data.email;
-        user_id = data.user_id;
-        postids = data.posts;
-        }
-      }
-      //for each post id, fetch the post data and post image and add to posts array
-      await Promise.all(postids.map(fetchPost));
-      console.log(posts);
+    await Promise.all(postids.map(fetchPost));
   });
 
   const fetchPost = async (postid) => {
@@ -59,21 +37,10 @@
       const image_data = await image.json();
       if (image_data.buffer) {
         console.log("we have a buffer");
-        const buff = Uint8Array.from(image_data.buffer.data);
-        const uri = await convertBuffer2BlobURL(buff);
-        const newPost = {data, uri: uri};
-        posts = [...posts, newPost];
+        const buff = Uint8Array.from([...image_data.buffer.data])
+        const blob = await convertBuffer2BlobURL(buff, image_data.mime)
+        posts = [...posts, { ...data, blob: blob }];
       }
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-  const convertBuffer2BlobURL = async (buff) => {
-    try {
-      const blob = new Blob([buff], { type: "image/png" });
-      const uri = URL.createObjectURL(blob);
-      return uri;
     } catch (err) {
       console.log(err);
     }
@@ -93,7 +60,7 @@
           />
           <CardBody>
             <h5 class="card-title">{username}</h5>
-            <p class="card-text">{email}</p>
+            <p class="card-text">{user_id}</p>
           </CardBody>
         </Card>
       </Col>
@@ -108,9 +75,9 @@
       <Col sm="12" md="6" lg="4" xl="3" xxl="2" class ="mb-3">
         <div class = "card-container" on:click={goto(`/img/${post.data.post.id}`)}>
         <Card>
-          <CardImg class = "card-img" src = {post.uri} alt = {`Image tags: ${post.data.post.tags}`}/>
+          <CardImg class = "card-img" src = {post.blob}/>
           <CardBody>
-            <CardFooter class = "card-footer">ID:{post.data.post.id} , Score: {post.data.post.score}, Tags: {post.data.post.tags}</CardFooter>
+            <CardFooter class = "card-footer">ID:{post.post.id} , Score: {post.post.score}, Tags: {post.post.tags}</CardFooter>
           </CardBody>
         </Card>
         </div>
