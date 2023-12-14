@@ -1,0 +1,155 @@
+body {
+  background-color: #949494;
+  margin: 1%;
+}
+
+.nav {
+  background-color: #f0f0f0;
+  margin: auto;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 1ex;
+}
+
+.navbar-container {
+  display: flex;
+  padding: 0;
+  justify-content: space-between;
+  align-items: center;
+  flex-direction: row;
+  flex-wrap: nowrap;
+}
+
+.searchbar-container {
+  margin-inline: auto;
+  justify-content: center;
+  display: flex;
+  align-self: center;
+  gap: 1ex;
+}
+
+.searchbar-container SearchBar {
+  flex-grow: 11;
+  align-self: center;
+}
+
+.left-buttons {
+  display: flex;
+  gap: 0.5ex;
+  align-items: center;
+}
+
+.right-buttons {
+  display: flex;
+  gap: 0.25ex;
+  margin-left: auto;
+  align-items: center;
+}
+
+img.icon {
+  width: 2.5em;
+}
+
+img.logo {
+  width: 30%;
+  height: 30%;
+}
+figure.logo {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
+  text-align: center;
+}
+.logo_title {
+  display: block;
+  font-family: Krungthep;
+  font-size: 72px;
+}
+
+.card-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: start;
+}
+
+.card-container {
+  /* width: 100%; */
+  /* height: 100%; */
+  display: flex;
+  flex-direction: column;
+  flex-grow: 0;
+  transition-property: all;
+  transition-duration: 150ms;
+  transition-timing-function: linear;
+}
+
+.card-container:hover {
+    transform: scale(1.025); /* Scale the image on hover */
+    box-shadow: 0px 0px 1ex rgba(0, 0, 0, 0.3); /* Add a subtle shadow on hover */
+}
+
+.post-counter {
+  text-align: center;
+  margin-top: 1em;
+}
+
+/* Default styles for all screen sizes */
+/* Styles for screens smaller than 576px (extra small) */
+@media (max-width: 575.98px) {
+  /* Your styles for extra small screens */
+  .main-search{
+    margin-inline: 1vw;
+  }
+
+  .nav {
+    justify-content: center;
+  }
+}
+
+/* Styles for screens between 576px and 767.98px (small) */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  /* Your styles for small screens */
+  .main-search{
+    margin-inline: 3vw;
+  }
+
+  .navbar-container {
+    flex-wrap: wrap;
+  }
+
+  .nav {
+    justify-content: center;
+  }
+}
+
+/* Styles for screens between 768px and 991.98px (medium) */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  /* Your styles for medium screens */
+  .main-search{
+    margin-inline: 5vw;
+  }
+
+  .nav {
+    justify-content: center;
+  }
+}
+
+/* Styles for screens between 992px and 1199.98px (large) */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  /* Your styles for large screens */
+  .main-search{
+    margin-inline: 10vw;
+  }
+}
+
+/* Styles for screens 1200px and larger (extra large) */
+@media (min-width: 1200px) {
+  /* Your styles for extra large screens */
+  .main-search{
+    margin-inline: 20vw;
+  }
+}

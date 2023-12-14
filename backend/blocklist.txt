@@ -1,0 +1,3 @@
+badword
+badword2 badword3
+badword4, badword5

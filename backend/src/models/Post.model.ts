@@ -1,13 +1,12 @@
 import { Column, DataType, ForeignKey, Model, AllowNull,
-  PrimaryKey, Table, Unique, CreatedAt } from 'sequelize-typescript';
+  PrimaryKey, Table, Unique, CreatedAt, AutoIncrement } from 'sequelize-typescript';
 import 'reflect-metadata';
 
 @Table({ tableName: 'posts', updatedAt: false })
 export default class Post extends Model{
 
-  @Unique
-  @AllowNull(false)
   @PrimaryKey
+  @AutoIncrement
   @Column(DataType.BIGINT)
   declare public id: bigint
 
@@ -16,21 +15,26 @@ export default class Post extends Model{
   public author: bigint
 
   @AllowNull(false)
-  @Column(DataType.JSON)
-  public tags: JSON
+  @Column(DataType.ARRAY(DataType.TEXT))
+  public tags: string[]
 
-  @AllowNull(false)
   @Column(DataType.CHAR(2048))
   public filepath: string
 
-  @Column(DataType.JSON)
-  public votes: JSON
+  @Column(DataType.ARRAY(DataType.BIGINT))
+  public upvotes: bigint[]
+
+  @Column(DataType.ARRAY(DataType.BIGINT))
+  public downvotes: bigint[]
 
   @Column(DataType.BIGINT)
   public score: bigint
 
+  @Column(DataType.TEXT)
+  public mime: string
+
   @CreatedAt
   @Column(DataType.DATE)
-  public created_on: Date;
+  public date_created: Date;
 
 }

@@ -1,5 +1,8 @@
 ### Node ###
 
+#Mac files
+.DS_Store
+
 # PostgreSQL
 *.pgsql
 
@@ -12,6 +15,8 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 bun.lockb
+
+backend/data/*
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
@@ -144,3 +149,6 @@ dist
 .svelte-kit
 
 # End of https://www.toptal.com/developers/gitignore/api/node
+frontend/.DS_Store
+.gitignore
+frontend/src/.DS_Store
